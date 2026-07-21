@@ -10,6 +10,12 @@ parameters:
 - name: extra_rf_test_args
   type: string
   default: ''
+- name: pytestConfigDut
+  type: string
+  default: '$(pytestDUT)'
+- name: testSelector
+  type: string
+  default: '.'
 - name: testLength
   type: string
   default: 'smoke'
@@ -69,7 +75,7 @@ steps:
       source $(Build.SourcesDirectory)/ettus-rts/config/remote/python_tests/setup_venv.sh
 
       cd $(Build.SourcesDirectory)/ettus-rts/config/remote/python_tests/${{ parameters.testFolder }}
-      python3 ../automated_main.py --test_selector . --ats_config $(pytestAtsConfig) --dut $(pytestDUT) --run_vars_overrides 'mgmt_addr=$(USRP_EMB_TARGET_IP)' --results_path '$(Common.TestResultsDirectory)/pytest/host' --test_length ${{ parameters.testLength }} ${{ parameters.extra_rf_test_args }}
+      python3 ../automated_main.py --test_selector ${{ parameters.testSelector }} --ats_config $(pytestAtsConfig) --dut ${{ parameters.pytestConfigDut }} --run_vars_overrides 'mgmt_addr=$(USRP_EMB_TARGET_IP)' --results_path '$(Common.TestResultsDirectory)/pytest/host' --test_length ${{ parameters.testLength }} ${{ parameters.extra_rf_test_args }}
     displayName: Run ${{ parameters.displayString }} on host
     continueOnError: true
     condition: and(succeeded(), ${{ parameters.runPyTest }})

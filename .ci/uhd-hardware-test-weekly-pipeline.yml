@@ -126,6 +126,7 @@ stages:
       uhdArtifactSource: uhd_mono_pipeline
       uhdFpgaArtifactSource: ${{ variables.uhdFpgaArtifactSource }}
       fpga_imgs_source: ${{ variables.fpga_imgs_source }}
+      runX410X4400RfSubset: true
       testLength: ${{ parameters.testLength }}
   - template: templates/tests/job-uhd-x440-hardware-tests-pebbles.yml
     parameters:

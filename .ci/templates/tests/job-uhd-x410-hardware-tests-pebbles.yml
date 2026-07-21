@@ -13,6 +13,9 @@ parameters:
 - name: extra_rf_test_args
   type: string
   default: ''
+- name: runX410X4400RfSubset
+  type: boolean
+  default: false
 - name: testLength
   type: string
 
@@ -25,6 +28,7 @@ jobs:
     runPyTestNonRF: false
     runDevTest: false
     runSystemImageTest: false
+    runX410X4400RfSubset: ${{ and(parameters.runX410X4400RfSubset, eq(parameters.fpga_imgs_source, 'Pipeline')) }}
     uhdArtifactSource: ${{ parameters.uhdArtifactSource }}
     uhdFpgaArtifactSource: ${{ parameters.uhdFpgaArtifactSource }}
     fpga_imgs_source: ${{ parameters.fpga_imgs_source }}
@@ -40,5 +44,6 @@ jobs:
         uartSerial: $(x410_uartSerial)
         pipelineAgent: pebbles-agent-1
         pytestAtsConfig: uhd_oss_ats
+        pytestConfigDut: 'x410-400'
         pytestDUT: 'x410'
         sfp0ip: '192.168.30.62'

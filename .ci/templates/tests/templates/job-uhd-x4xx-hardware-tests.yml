@@ -18,6 +18,9 @@ parameters:
 - name: runRfnocBlockTest
   type: boolean
   default: false
+- name: runX410X4400RfSubset
+  type: boolean
+  default: false
 - name: forceIQCorrections
   type: boolean
   default: false
@@ -421,6 +424,37 @@ jobs:
         dutFPGA: 'X4_200'
         resultFileNameBase: 'complex_gain_block_test'
         testSelector: 'test_radio_control_complex_gain.py'
+
+  - ${{ if parameters.runX410X4400RfSubset }}:
+    - template: ../../steps-download-fpga-artifact.yml
+      parameters:
+        dutType: $(pytestDUT)
+        dutFPGA: 'X4_400'
+        fpgaArtifactSource: ${{ parameters.uhdFpgaArtifactSource }}
+        fpga_imgs_source: ${{ parameters.fpga_imgs_source }}
+
+    - script: |
+        UHD_INSTALL_PATH=$(uhd_artifact_directory)/uhddev-$(testOS)-${{ parameters.toolset }}/uhddev/build-installed
+        export PATH=$UHD_INSTALL_PATH/bin:$PATH
+        if [ -d "$UHD_INSTALL_PATH/lib64" ]; then
+          export LD_LIBRARY_PATH=$UHD_INSTALL_PATH/lib64:$LD_LIBRARY_PATH
+        else
+          export LD_LIBRARY_PATH=$UHD_INSTALL_PATH/lib:$LD_LIBRARY_PATH
+        fi
+        uhd_image_loader --args type=$(dutType),addr=$(USRP_EMB_TARGET_IP) \
+          --fpga=$FPGA_ARTIFACT_DIR/$FPGA_BITFILE_NAME.bit
+      displayName: 'X410/X4_400 RF subset: Load FPGA on USRP'
+
+    - template: step-uhd-run-pytest-on-host.yml
+      parameters:
+        runPyTest: true
+        displayString: 'X410/X4_400 RF subset'
+        testFolder: 'pytests'
+        pytestConfigDut: $(pytestConfigDut)
+        testSelector: 'test_ddc_response.py test_rx_offset_tone_sweep.py test_tx_offset_tone_sweep.py'
+        testLength: ${{ parameters.testLength }}
+        warmUpAfterBoot: ${{ parameters.warmUpAfterBoot }}
+        toolset: ${{ parameters.toolset }}
 
   # Run the mender tests last because they
   # modify the flashed image on the device

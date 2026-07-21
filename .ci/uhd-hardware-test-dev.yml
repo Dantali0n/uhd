@@ -325,6 +325,7 @@ stages:
       uhdArtifactSource: uhd_mono_pipeline
       uhdFpgaArtifactSource: ${{ variables.uhdFpgaArtifactSource }}
       fpga_imgs_source: ${{ variables.fpga_imgs_source }}
+      runX410X4400RfSubset: true
       extra_rf_test_args: ${{ parameters.extra_rf_test_args }}
       testLength: ${{ parameters.testLength }}
 

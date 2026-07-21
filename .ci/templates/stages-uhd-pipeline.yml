@@ -932,6 +932,7 @@ stages:
         fpga_imgs_source: 'Pipeline'
       ${{ else }}:
         fpga_imgs_source: 'Filesystem'
+      runX410X4400RfSubset: true
       testLength: ${{ parameters.testLength }}
   - template: tests/job-uhd-x440-hardware-tests-pebbles.yml
     parameters:
