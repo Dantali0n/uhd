@@ -12,6 +12,8 @@
 #include <uhd/features/gpio_power_iface.hpp>
 #include <uhd/features/gps_iface.hpp>
 #include <uhd/features/ref_clk_calibration_iface.hpp>
+#include <uhd/features/spi_getter_iface.hpp>
+#include <uhd/features/trig_io_mode_iface.hpp>
 #include <uhd/rfnoc/block_id.hpp>
 #include <uhd/rfnoc/filter_node.hpp>
 #include <uhd/rfnoc/graph_edge.hpp>
@@ -22,7 +24,9 @@
 #include <uhd/rfnoc_graph.hpp>
 #include <uhd/transport/adapter_id.hpp>
 #include <uhd/types/device_addr.hpp>
+#include <uhd/types/trig_io_mode.hpp>
 #include <uhd/utils/graph_utils.hpp>
+#include <uhdlib/features/fpga_load_notification_iface.hpp>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 #include <memory>
@@ -32,6 +36,72 @@
 using namespace uhd::rfnoc;
 
 namespace { // anon
+
+using feature_id_t = uhd::features::discoverable_feature::feature_id_t;
+
+bool mb_has_feature(uhd::rfnoc::mb_controller& self, const feature_id_t feature_id)
+{
+    switch (feature_id) {
+        case uhd::features::discoverable_feature::FPGA_LOAD_NOTIFICATION:
+            return self.has_feature<uhd::features::fpga_load_notification_iface>();
+        case uhd::features::discoverable_feature::GPIO_POWER:
+            return self.has_feature<uhd::features::gpio_power_iface>();
+        case uhd::features::discoverable_feature::GPS:
+            return self.has_feature<uhd::features::gps_iface>();
+        case uhd::features::discoverable_feature::REF_CLK_CALIBRATION:
+            return self.has_feature<uhd::features::ref_clk_calibration_iface>();
+        case uhd::features::discoverable_feature::TRIG_IO_MODE:
+            return self.has_feature<uhd::features::trig_io_mode_iface>();
+        default:
+            return false;
+    }
+}
+
+py::object mb_get_feature_obj(
+    uhd::rfnoc::mb_controller& self, const feature_id_t feature_id)
+{
+    switch (feature_id) {
+        case uhd::features::discoverable_feature::FPGA_LOAD_NOTIFICATION:
+            if (!self.has_feature<uhd::features::fpga_load_notification_iface>()) {
+                return py::none();
+            }
+            return py::cast(
+                &self.get_feature<uhd::features::fpga_load_notification_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        case uhd::features::discoverable_feature::GPIO_POWER:
+            if (!self.has_feature<uhd::features::gpio_power_iface>()) {
+                return py::none();
+            }
+            return py::cast(&self.get_feature<uhd::features::gpio_power_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        case uhd::features::discoverable_feature::GPS:
+            if (!self.has_feature<uhd::features::gps_iface>()) {
+                return py::none();
+            }
+            return py::cast(&self.get_feature<uhd::features::gps_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        case uhd::features::discoverable_feature::REF_CLK_CALIBRATION:
+            if (!self.has_feature<uhd::features::ref_clk_calibration_iface>()) {
+                return py::none();
+            }
+            return py::cast(&self.get_feature<uhd::features::ref_clk_calibration_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        case uhd::features::discoverable_feature::TRIG_IO_MODE:
+            if (!self.has_feature<uhd::features::trig_io_mode_iface>()) {
+                return py::none();
+            }
+            return py::cast(&self.get_feature<uhd::features::trig_io_mode_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        default:
+            throw uhd::key_error(
+                "Feature ID is not currently bound in the Python API for mb_controller.");
+    }
+}
 
 using timekeeper = mb_controller::timekeeper;
 
@@ -71,6 +141,36 @@ public:
 void export_rfnoc(py::module& m)
 {
 #define RIS_FIELD(name) .def_readwrite(#name, &register_iface_stats::name)
+
+    py::class_<uhd::features::discoverable_feature,
+        uhd::features::discoverable_feature::sptr>(m, "discoverable_feature")
+        .def("get_feature_name", &uhd::features::discoverable_feature::get_feature_name);
+
+    py::class_<uhd::spi_iface, uhd::spi_iface::sptr>(m, "spi_iface")
+        .def("transact_spi",
+            &uhd::spi_iface::transact_spi,
+            py::arg("which_slave"),
+            py::arg("config"),
+            py::arg("data"),
+            py::arg("num_bits"),
+            py::arg("readback"))
+        .def("read_spi",
+            &uhd::spi_iface::read_spi,
+            py::arg("which_slave"),
+            py::arg("config"),
+            py::arg("data"),
+            py::arg("num_bits"))
+        .def("write_spi",
+            &uhd::spi_iface::write_spi,
+            py::arg("which_slave"),
+            py::arg("config"),
+            py::arg("data"),
+            py::arg("num_bits"));
+
+    py::class_<uhd::features::spi_getter_iface,
+        uhd::features::spi_getter_iface::sptr,
+        uhd::features::discoverable_feature>(m, "spi_getter")
+        .def("get_spi_ref", &uhd::features::spi_getter_iface::get_spi_ref);
 
     py::class_<register_iface_stats>(m, "register_iface_stats")
         // clang-format off
@@ -289,6 +389,17 @@ void export_rfnoc(py::module& m)
         .def("store_ref_clk_tuning_word",
             &uhd::features::ref_clk_calibration_iface::store_ref_clk_tuning_word);
 
+    py::enum_<uhd::trig_io_mode_t>(m, "trig_io_mode_t")
+        .value("PPS_OUTPUT", uhd::trig_io_mode_t::PPS_OUTPUT)
+        .value("INPUT", uhd::trig_io_mode_t::INPUT)
+        .value("OFF", uhd::trig_io_mode_t::OFF);
+
+    py::class_<uhd::features::fpga_load_notification_iface>(m, "fpga_load_notification")
+        .def("onload", &uhd::features::fpga_load_notification_iface::onload);
+
+    py::class_<uhd::features::trig_io_mode_iface>(m, "trig_io_mode")
+        .def("set_trig_io_mode", &uhd::features::trig_io_mode_iface::set_trig_io_mode);
+
     py::class_<detail::filter_node>(m, "filter_node")
         .def("get_rx_filter_names", &detail::filter_node::get_rx_filter_names)
         .def("get_rx_filter", &detail::filter_node::get_rx_filter)
@@ -300,6 +411,10 @@ void export_rfnoc(py::module& m)
     py::class_<mb_controller, mb_controller::sptr>(m, "mb_controller")
         .def("get_num_timekeepers", &mb_controller::get_num_timekeepers)
         .def("get_timekeeper", &mb_controller::get_timekeeper)
+        .def("enumerate_features",
+            [](mb_controller& self) { return self.enumerate_features(); })
+        .def("has_feature", &mb_has_feature, py::arg("feature_id"))
+        .def("get_feature", &mb_get_feature_obj, py::arg("feature_id"))
         .def("init", &mb_controller::init)
         .def("get_mboard_name", &mb_controller::get_mboard_name)
         .def("set_time_source", &mb_controller::set_time_source)

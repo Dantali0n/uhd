@@ -33,3 +33,5 @@ TuneResult = lib.types.tune_result
 separate_device_addr = lib.types.separate_device_addr
 combine_device_addrs = lib.types.combine_device_addrs
 Direction = lib.types.direction_t
+DiscoverableFeatureID = lib.types.discoverable_feature_id
+SPIPeriphConfig = lib.types.spi_periph_config

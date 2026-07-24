@@ -16,6 +16,7 @@ namespace py = pybind11;
 
 #include "cal/cal_python.hpp"
 #include "device_python.hpp"
+#include "features/features_python.hpp"
 #include "include/uhdlib/usrp/common/max287x_python.hpp"
 #include "property_tree_python.hpp"
 #include "rfnoc/ddc_block_control_python.hpp"
@@ -87,6 +88,7 @@ PYBIND11_MODULE(libpyuhd, m)
     export_types(types_module);
     export_time_spec(types_module);
     export_spi_config(types_module);
+    export_discoverable_feature(types_module);
     export_metadata(types_module);
     export_sensors(types_module);
     export_tune(types_module);

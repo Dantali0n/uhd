@@ -20,7 +20,9 @@ void export_spi_config(py::module& m)
         .value("EDGE_FALL", spi_edge_t::EDGE_FALL);
 
     py::class_<spi_config_t>(m, "spi_config")
+        .def(py::init<>())
         .def(py::init<spi_edge_t>())
+        .def(py::init<spi_edge_t, size_t>(), py::arg("edge"), py::arg("divider"))
 
         // Properties
         .def_readwrite("mosi_edge", &spi_config_t::mosi_edge)

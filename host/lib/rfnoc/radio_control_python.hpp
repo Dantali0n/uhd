@@ -6,14 +6,85 @@
 
 #pragma once
 
+#include <uhd/features/adc_self_calibration_iface.hpp>
 #include <uhd/features/complex_gain_iface.hpp>
 #include <uhd/features/discoverable_feature.hpp>
 #include <uhd/features/internal_sync_iface.hpp>
+#include <uhd/features/spi_getter_iface.hpp>
 #include <uhd/rfnoc/block_controller_factory_python.hpp>
 #include <uhd/rfnoc/radio_control.hpp>
 #include <pybind11/stl.h>
 
 using namespace uhd::rfnoc;
+
+namespace {
+
+using feature_id_t = uhd::features::discoverable_feature::feature_id_t;
+
+bool radio_has_feature(radio_control& self, const feature_id_t feature_id)
+{
+    switch (feature_id) {
+        case uhd::features::discoverable_feature::INTERNAL_SYNC:
+            return self.has_feature<uhd::features::internal_sync_iface>();
+        case uhd::features::discoverable_feature::TX_COMPLEX_GAIN:
+            return self.has_feature<uhd::features::tx_complex_gain_iface>();
+        case uhd::features::discoverable_feature::RX_COMPLEX_GAIN:
+            return self.has_feature<uhd::features::rx_complex_gain_iface>();
+        case uhd::features::discoverable_feature::SPI_GETTER_IFACE:
+            return self.has_feature<uhd::features::spi_getter_iface>();
+        case uhd::features::discoverable_feature::ADC_SELF_CALIBRATION:
+            return self.has_feature<uhd::features::adc_self_calibration_iface>();
+        default:
+            return false;
+    }
+}
+
+py::object radio_get_feature_obj(radio_control& self, const feature_id_t feature_id)
+{
+    switch (feature_id) {
+        case uhd::features::discoverable_feature::INTERNAL_SYNC:
+            if (!self.has_feature<uhd::features::internal_sync_iface>()) {
+                return py::none();
+            }
+            return py::cast(&self.get_feature<uhd::features::internal_sync_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        case uhd::features::discoverable_feature::TX_COMPLEX_GAIN:
+            if (!self.has_feature<uhd::features::tx_complex_gain_iface>()) {
+                return py::none();
+            }
+            return py::cast(&self.get_feature<uhd::features::tx_complex_gain_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        case uhd::features::discoverable_feature::RX_COMPLEX_GAIN:
+            if (!self.has_feature<uhd::features::rx_complex_gain_iface>()) {
+                return py::none();
+            }
+            return py::cast(&self.get_feature<uhd::features::rx_complex_gain_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        case uhd::features::discoverable_feature::SPI_GETTER_IFACE:
+            if (!self.has_feature<uhd::features::spi_getter_iface>()) {
+                return py::none();
+            }
+            return py::cast(&self.get_feature<uhd::features::spi_getter_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        case uhd::features::discoverable_feature::ADC_SELF_CALIBRATION:
+            if (!self.has_feature<uhd::features::adc_self_calibration_iface>()) {
+                return py::none();
+            }
+            return py::cast(
+                &self.get_feature<uhd::features::adc_self_calibration_iface>(),
+                py::return_value_policy::reference_internal,
+                py::cast(&self));
+        default:
+            throw uhd::key_error(
+                "Feature ID is not currently bound in the Python API for radio_control.");
+    }
+}
+
+} // namespace
 
 void export_radio_control(py::module& m)
 {
@@ -37,9 +108,24 @@ void export_radio_control(py::module& m)
             py::arg("chan"),
             py::arg("time") = py::none())
         .def("get_gain_coeff", &uhd::features::rx_complex_gain_iface::get_gain_coeff);
+    py::class_<uhd::features::adc_self_calibration_iface>(m, "adc_self_calibration")
+        .def("run",
+            static_cast<void (uhd::features::adc_self_calibration_iface::*)(
+                const size_t)>(&uhd::features::adc_self_calibration_iface::run),
+            py::arg("chan"))
+        .def("run",
+            static_cast<void (uhd::features::adc_self_calibration_iface::*)(
+                const size_t, const uhd::device_addr_t)>(
+                &uhd::features::adc_self_calibration_iface::run),
+            py::arg("chan"),
+            py::arg("params"));
 
     py::class_<radio_control, noc_block_base, radio_control::sptr>(m, "radio_control")
         .def(py::init(&block_controller_factory<radio_control>::make_from))
+        .def("enumerate_features",
+            [](radio_control& self) { return self.enumerate_features(); })
+        .def("has_feature", &radio_has_feature, py::arg("feature_id"))
+        .def("get_feature", &radio_get_feature_obj, py::arg("feature_id"))
         .def("set_rate", &radio_control::set_rate)
         .def("get_rate", &radio_control::get_rate)
         .def("get_rate_range", &radio_control::get_rate_range)

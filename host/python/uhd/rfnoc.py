@@ -34,5 +34,9 @@ SwitchboardBlockControl = lib.rfnoc.switchboard_block_control
 VectorIirBlockControl = lib.rfnoc.vector_iir_block_control
 WindowBlockControl = lib.rfnoc.window_block_control
 
+# Dynamic discoverable-feature API exports (CamelCase only)
+SpiIface = lib.rfnoc.spi_iface
+SpiGetter = lib.rfnoc.spi_getter
+
 connect_through_blocks = lib.rfnoc.connect_through_blocks
 get_block_chain = lib.rfnoc.get_block_chain
