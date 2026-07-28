@@ -1,0 +1,10 @@
+/*! \page page_b3xx_kernel B3xx Kernel Module Installation and Usage
+
+\tableofcontents
+
+\section b3xx_kernel_linux Installing the Linux Kernel Module
+
+\section b3xx_kernel_windows Installing the Windows Kernel Driver
+
+*/
+// vim:ft=doxygen:

@@ -1,0 +1,553 @@
+/*! \page page_usrp_b3xx USRP B3xx Series
+
+\tableofcontents
+
+\section b3xx_feature_list Comparative features list
+
+- Hardware Capabilities:
+	- PCIe Gen 2x4 or Thunderbolt™ 3 or later
+	- External PPS input
+	- External reference input (10 MHz, 122.88 MHz, or 125 MHz)
+	- 4x External high-frequency reference output (122.88 MHz or 125 MHz) and PPS output over mini HDMI for improved phase-coherent operation
+	- Internal GPSDO for timing and time/frequency reference
+	- Supported master clock rates: 122.88 MHz and 125 MHz
+	- Fixed TX/RX bandwidth: 100 MHz
+	- Onboard power and temperature monitoring
+	- Front-panel mini HDMI GPIO connector
+	- 1 GiB DDR3 RAM
+	- Kintex-7 Industrial-Grade FPGA (XC7K325T)
+	- JTAG Connector (only accessible on OEM and PCIe variants)
+- FPGA Capabilities:
+	- \ref page_timedcmds in FPGA
+	- Timed sampling in FPGA
+	- RFNoC capability
+- Mechanical Capabilities:
+	- The B310 is available in multiple form factors:
+		- 790817-01 Full Height PCIe 2.0 x 4 for desktop and standard workstations
+		- 790415-01 OEM PCIe 2.0 x 4 for embedded and customer system integration
+		- 790414-01 Enclosed Thunderbolt™ housed in a passively cooled enclosure with accommodations for attachment to an optional rackmount kit (accessory)
+- RF Capabilities:
+    - 2x full-duplex RF channels with a bandwidth of 100MHz, tunable from 350 MHz - 7.225 GHz center frequency using the ADRV9032R transceiver
+
+\section b3xx_overview Overview and Features
+
+The B310 has three variants: PCIe, OEM PCIe, and Enclosed Thunderbolt™.
+
+\image html b310_pcie.png "Ettus USRP B310 PCIe" width=15%
+\image html b310_oem.png "Ettus USRP B310 OEM PCIe" width=15%
+\image html b310_thunderbolt.png "Ettus USRP B310 Enclosed Thunderbolt™" width=25%
+
+The Ettus USRP B310 is a B-Series USRP. All three variants utilize the same ADRV9032R transceiver as well as the same clocking circuitry. The PCIe variant is a superset of the OEM variant, including a PCIe front panel bracket and attached heatsink. Apart from the different mechanical enclosure, 
+the Thunderbolt™ variant differs only by the added Thunderbolt™ circuitry to connect the module over Thunderbolt™ rather than PCIe card edge. The other pieces of the board are equivalent. The software support within UHD is the same for all three variants.
+
+\subsection b3xx_overview_panels Front and Back Panels
+
+The front and back panels are equivalent between the three variants as far as ports are concerned. The only difference being that the Thunderbolt™ panels have a horizontal orientation, and the other variants have a vertical orientation.
+The below pictures are from the Thunderbolt™ variant.
+
+\image html b310_front.png "Ettus USRP B310 Thunderbolt™ Front Panel" width=50%
+
+The B310 front panel provides access to the RF ports and status LEDs for each channel. It also provides access to the GPS antenna port and the Mini HDMI GPIO port.
+There is also a power LED status indicator.
+
+\image html b310_back.png "Ettus USRP B310 Thunderbolt™ Back Panel" width=50%
+
+The B310 back panel provides access to the Reference and PPS In ports for clocking as well as the SYNC port that outputs the high-frequency reference and PPS out signals through use of the multi-device sync cable.
+The panel also provides access to the external power USB-C port and Thunderbolt™ USB-C port. These ports are only used in the Thunderbolt™ configuration but are present in the other configurations.
+
+\section b3xx_getting_started Getting started
+
+This section walks through the first steps to get your USRP B310 up and running.
+The B310 connects to your host computer via PCIe card edge or Thunderbolt™ depending on the variant.
+
+\subsection b3xx_getting_started_driver Installing the Kernel Driver
+
+The B310 requires the `nib310rio` kernel module on Linux, or the `b310k` driver on
+Windows. Without this kernel driver, UHD will not be able to detect or interact with the device.
+
+To install either of these drivers, please follow the instructions here: \subpage page_b3xx_kernel
+
+See \ref b3xx_troubleshooting_driver for driver troubleshooting steps.
+
+\subsection b3xx_getting_started_handling Proper Care and Handling
+
+All Ettus Research products are individually tested before shipment. The USRP is
+guaranteed to be functional at the time it is received by the customer. Improper
+use or handling can cause the device to become non-functional. Take the following
+precautions to prevent damage:
+
+- Never allow metal objects to touch the circuit board while powered.
+- Always properly terminate the transmit port with an antenna or 50Ω load.
+- Always handle the board with proper anti-static methods.
+- Never allow the board to come into contact with any voltage spikes.
+- Never allow any water or condensing moisture to come into contact with the device.
+- Always use caution with FPGA, firmware, or software modifications.
+
+\subsection b3xx_hw Hardware Setup
+
+\subsubsection b3xx_getting_started_hw_pcie PCI Express
+
+- Prior to installing the module, make sure the PC is powered off.
+- Install the B310 into an available PCIe slot (x4 or larger).
+    - For best performance, ensure the slot supports PCIe gen 2x4.
+- Power on the PC.
+
+\subsubsection b3xx_hw_tb Thunderbolt™
+
+- The Thunderbolt™ variant is hot-pluggable.
+- Connect power to the device via the included cable.
+- Connect the B310's Thunderbolt™ port to a Thunderbolt™ port on the PC via Thunderbolt™ cable.
+
+<b>Note:</b> Use a certified Thunderbolt™ cable — not all cables with USB-C connectors support Thunderbolt™. Similarly, ensure the host port is Thunderbolt™-capable; not all USB-C ports support Thunderbolt™.
+
+\subsection b3xx_getting_started_discover Discovering the Device
+
+Once the driver is installed and the device is connected, run:
+
+    uhd_find_devices --args type=b3xx
+
+to verify UHD can see the device. To probe all hardware components, run:
+
+    uhd_usrp_probe --args type=b3xx
+
+\subsection b3xx_getting_started_fpga_update Updating the FPGA
+
+Upon first use, update the FPGA image to the version of UHD you are utilizing to ensure compatibility between the driver and FPGA.
+
+1. Download current UHD images using the `uhd_images_downloader` script
+   (see also \ref page_images).
+2. Use `uhd_image_loader` to update the FPGA:
+
+       uhd_image_loader --args="type=b3xx,resource=<resource>"
+
+3. Power-cycle the device after loading.
+
+\subsubsection b3xx_fpga_flavors FPGA Image Flavors
+
+The B310 has two FPGA images that are shipped with UHD. The default FPGA, replay, has a RFNoC Replay block that can be used as with other RFNoC devices.
+The other FPGA, fifo, instead utilizes the DRAM as a buffer for improved streaming performance for the Thunderbolt variant.
+
+To load a specific FPGA flavor, add the fpga device argument to the uhd_image_loader utility:
+
+    uhd_image_loader --args="type=b3xx,resource=<resource>,fpga=fifo"
+
+If no FPGA flavor is specified, the default flavor will be programmed.
+
+\subsection b3xx_getting_started_firmware Downloading ADRV9032R Firmware
+
+The ADRV9032R has several binaries that must be programmed every UHD session. To acquire these binaries, the user can run the following command:
+
+    uhd_images_downloader --types b3xx
+
+The files should be present in the directory pointed to by UHD_IMAGES_DIR or the default UHD images location.
+
+\section b3xx_usage Using a B3xx USRP from UHD
+
+Like any other USRP, the B310 is controlled by the UHD software. To create a
+device handle in C++:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
+auto usrp = uhd::usrp::multi_usrp::make("type=b3xx");
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+\subsection b3xx_usage_device_args Device arguments
+
+ Key                   | Description                                                                | Example Value
+-----------------------|----------------------------------------------------------------------------|----------------------------------
+ type                  | Device type filter                                                         | type=b3xx
+ resource              | PCIe resource identifier                                                   | resource=nib310rio0
+ master_clock_rate     | Master clock rate used by the device (default: 122.88e6)                   | master_clock_rate=122.88e6
+ system_ref_rate       | External reference clock frequency in Hz (default: 10e6)                   | system_ref_rate=10e6
+ clock_source          | Reference clock source (see \ref b3xx_setup_clocking)                      | clock_source=internal
+ time_source           | Time/PPS source (see \ref b3xx_setup_clocking)                             | time_source=internal
+ init_cals             | ADRV9032 initialization calibration selection                              | init_cals=DEFAULT
+ tracking_cals         | ADRV9032 tracking calibration selection                                    | tracking_cals=DEFAULT
+
+\section b3xx_setup_clocking Setup Clocking
+
+\subsection b3xx_set_clocking_master Master clock rate
+
+The B310 supports master clock rates of 122.88MHz and 125MHz. This rate cannot be changed at runtime.
+
+\subsection b3xx_set_clocking_sources Clock and time sources
+
+The following clock sources and time sources are available:
+
+| Clock Source   | Description                                                                   |
+|----------------|-------------------------------------------------------------------------------|
+| `internal`     | Internal clocking chip, default                                               |
+| `external`     | External reference input (10 MHz, 122.88 MHz, or 125 MHz)                     |
+| `gpsdo`        | Internal clocking chip disciplined by onboard GPS chip                        |
+| `sync`         | High-frequency sync signal from sync cable (rate = master clock rate)         |
+| `sync_gpsdo`   | GPSDO-disciplined sync signal from sync cable (rate = master clock rate)      |
+
+| Time Source    | Description                                                                   |
+|----------------|-------------------------------------------------------------------------------|
+| `internal`     | Internal free-running timekeeper, default                                     |
+| `external`     | External PPS signal                                                           |
+| `gpsdo`        | Timepulse from GPS chip                                                       |
+| `sync`         | External PPS signal (meant for input via multi-device sync cable)             |
+| `sync_gpsdo`   | External PPS signal (meant for input via multi-device sync cable)             |
+
+Valid clock/time source combinations:
+
+| Clock Source   | Time Source           |
+|----------------|-----------------------|
+| `internal`     | `internal`            |
+| `external`     | `internal`            |
+| `external`     | `external`            |
+| `external`     | `sync`                |
+| `external`     | `sync_gpsdo`          |
+| `gpsdo`        | `gpsdo`               |
+| `sync`         | `sync`                |
+| `sync_gpsdo`   | `sync_gpsdo`          |
+
+If the external reference clock is not 10 MHz, provide the `system_ref_rate` device arg. 
+If using the sync, or sync_gpsdo clock source, you do not need to provide the `system_ref_rate` device arg, since it will be the rate of the `master_clock_rate`
+
+To use an external reference:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
+auto usrp = uhd::usrp::multi_usrp::make("type=b3xx,clock_source=external");
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+\section b3xx_addressing Addressing the Device
+
+\subsection b3xx_addressing_singledev Single device configuration
+
+On Linux, UHD locates devices by scanning `/sys/bus/pci/drivers/nib310rio/`. The
+device `resource` key is the sysfs device identifier (e.g., an entry under the
+`nib310rio` subdirectory).
+
+On Windows, UHD uses the Windows Device Manager to enumerate `b310k` driver
+devices and derives the resource from the PCIe bus:device:function location.
+
+Typical UHD device address:
+
+    type=b3xx,resource=<resource string>
+
+\subsection b3xx_addressing_multidev Multiple device configuration
+
+Multiple B310 devices may be used simultaneously by specifying each device's
+resource. Use the `uhd::usrp::multi_usrp` interface with a combined device
+resource args:
+
+    type=b3xx,resource0=<resource string for device 0>,resource1=<resource string for device 1>
+
+For multi-device synchronization, ensure both devices share an external clock
+and PPS signal (see \ref b3xx_misc_multdev_sync).
+
+\section b3xx_hw_notes Hardware Notes
+
+\subsection b3xx_hw_rf RF Hardware (ADRV9032)
+
+The B310 uses an Analog Devices ADRV9032 transceiver.
+
+- **Number of channels:** 2 (2x2 MIMO)
+- **TX antennas:** `TX/RX0`
+- **RX antennas:** `TX/RX0`, `RX1`
+- **TX gain range:** 0.0 to 41.5 dB, step 0.05 dB
+- **RX gain range:** 0.0 to 36.0 dB, step 0.5 dB
+- **TX/RX bandwidth:** Fixed at 100 MHz
+
+\subsection b3xx_hw_lo LO Configuration
+
+Each channel has two LOs that can be set:
+
+| LO Name | Sources        | Description                                     |
+|---------|----------------|-------------------------------------------------|
+| `RFLO`  | `LO0`, `LO1`   | RF local oscillator from ADRV9032 synthesizer   |
+| `NCO`   | `NCO`          | Numerically-controlled frequency shifter        |
+
+Since there are only two RFLOs and four channels, that means that channels will need to share RFLOs.
+By default, the two Rx channels share one LO, while the two Tx channels share the other LO. This means when you change the frequency of one channel, you will likely change the frequency of another.
+
+Set the LO source using `uhd::usrp::multi_usrp::set_rx_lo_source()` or
+`uhd::usrp::multi_usrp::set_tx_lo_source()` with LO name `"RFLO"`.
+
+\subsection b3xx_calibrations RF Calibrations
+
+The ADRV9032 transceiver has built-in calibrations which can be enabled from
+UHD. A more detailed description of the calibrations can be found in the ADRV903x
+user guide, see section "ARM PROCESSOR AND DEVICE CALIBRATIONS".
+
+Not all calibrations available on the ADRV9032R are applicable to the USRP B310.
+However, those calibrations that are applicable can be enabled/disabled at
+initialization time using the `tracking_cals` and `init_cals` device args (see
+also \ref b3xx_usage_device_args). These can be set by using the following descriptive keys provided by UHD
+(e.g. `init_cals=DEFAULT,tracking_cals=TX_QEC|RX_QEC`). The `|` symbol can be
+used to combine keys (equivalent to a bitwise OR).
+
+Calibrations can significantly delay the initialization of a session. By only
+picking relevant calibrations, sessions can be initialized faster.
+
+Key (`init_cal`)        | Function
+------------------------|-----------------------------------
+RX_DC_OFFSET            | Corrects for DC Offset within the receiver chain
+ADC_RX                  | Calibrates the receiver ADC
+ADC_ORX                 | Calibrates the observation receiver ADC
+ADC_TXLB                | Calibrates the Tx loopback receiver ADC
+TXDAC                   | Calibrates the transmitter DAC
+TXBBF                   | Tunes the corner frequency of the transmitter filter
+TXLB_FILTER             | Tx Loopback filter calibration
+TXLB_PATH_DLY           | Computes the transmitter to internal loopback path delay, which is required for the TxQEC initial calibration and tracking
+TX_ATTEN_CAL            | Tx atten phase/gain calibration
+HRM                     | Performs HRM (harmonic reject mixer) harmonics rejection corrections
+TXQEC                   | Performs an initial QEC calibration for the transmitter path. It utilizes the transmitter path and an internal loopback path
+TXLOL                   | Performs an initial LO leakage calibration for the transmitter path. Utilizes the transmitter path and the internal loopback path
+
+Key (`tracking_cal`)    | Function
+------------------------|-----------------------------------
+RX_QEC                  | RxQEC Tracking calibration
+RX_ADC                  | Rx ADC Tracking calibration
+RXSPUR                  | RxSpur Tracking calibration
+TX_QEC                  | TxQEC Tracking calibration
+TX_LB_ADC               | TxLB ADC Tracking calibration
+
+\subsection b3xx_blackout_avoidance Blackout Frequency Avoidance
+
+If Tx QEC tracking calibrations are active, there are ranges of frequency that must be avoided due to being within 1 MHz of blackout frequencies.
+This is detailed in the "Tx QEC Tracking Calibration Frequency Planning" section of the ADRV903x user guide. However, note that because of the initial frequencies used by the B310, the sampling frequency that needs to be used is the
+sampling rate of the LBADC rather than the Tx DAC sampling rate. Though the Tx QEC tracking calibration is not enabled by default, this blackout avoidance is implemented since users can enable the calibration.
+This blackout avoidance will be triggered anytime that the `uhd::usrp::multi_usrp::set_tx_freq()` or `uhd::usrp::multi_usrp::set_rx_freq()` is called with a value within 1 MHz of any blackout frequencies. This works by adjusting the
+RFLO to a frequency that is at least 1 MHz away from all blackout frequencies and the NCO is used to account for the shift, such that the overall frequency is where the user requested.
+
+This blackout avoidance can be avoided by calling the `uhd::usrp::multi_usrp::set_tx_lo_freq()` or `uhd::usrp::multi_usrp::set_rx_lo_freq()` to set the frequency of a specific LO. If the RFLO is set to a frequency that is within 1
+MHz of a blackout frequency, a warning will be printed, but the blackout avoidance algorithm will not be triggered.
+
+\subsection b3xx_hw_gpio Front Panel GPIO
+
+The B310 has a front-panel mini HDMI GPIO connector accessible on the front panel of the device. Users can utilize these pins with the UHD GPIO API.
+(see \ref page_gpio_api).
+
+Each pin can be freely programmed or track the ATR register of either radio channel.
+
+The mini HDMI connector has 19 pins, 10 of these pins can be used through the UHD GPIO API. The pin mapping can be seen below:
+
+### Pin Mapping
+
+- Pin 1:  GND
+- Pin 2:  Data[8]
+- Pin 3:  GND
+- Pin 4:  GND
+- Pin 5:  Data[9]
+- Pin 6:  GND
+- Pin 7:  GND
+- Pin 8:  Data[0]
+- Pin 9:  Data[1]
+- Pin 10: GND
+- Pin 11: Data[2]
+- Pin 12: Data[3]
+- Pin 13: GND
+- Pin 14: Data[4]
+- Pin 15: Data[5]
+- Pin 16: Data[6]
+- Pin 17: Data[7]
+- Pin 18: +3.3V
+- Pin 19: GND
+
+\subsection b3xx_hw_sensors Available Sensors
+
+The following sensors are available and can be queried through the UHD API:
+
+<b>Motherboard sensors:</b>
+
+- **pcie_max_speed** - maximum PCIe link speed, in GT/s
+- **pcie_negotiated_speed** - actual PCIe link speed, in GT/s
+- **pcie_max_width** - maximum PCIe link width, in lanes
+- **pcie_negotiated_width** - actual PCIe link width, in lanes
+- **ref_locked** - clock reference locked
+- **ref_stable** - clock reference has remained stable
+- **temp_middle** - temperature of the board middle zone, in degrees Celsius
+- **temp_pcie_connector_edge** - temperature at the PCIe connector edge, in degrees Celsius
+- **temp_front_end** - temperature of the RF front end, in degrees Celsius
+- **temp_fpga** - temperature of the FPGA, in degrees Celsius
+- **input_voltage** - input supply voltage, in volts
+- **input_power** - input power consumption, in watts
+- **input_current** - input current draw, in amperes
+- **lmk05318_priref_valid** - LMK05318 primary reference is valid
+- **gps_pps_present** - GPS PPS signal is present
+
+<b>GPS sensors (when clock_source is set to gpsdo or sync_gpsdo):</b>
+
+- **gps_locked** - GPS is locked to satellites
+- **gps_gpgga** - GPGGA string from the GPS module
+- **gps_time** - GPS time in seconds since the epoch
+- **gps_gprmc** - GPRMC string from the GPS module
+- **gps_lmk04832_lock** - LMK04832 is locked
+- **gps_lmk05318_dpll_freq_lock** - LMK05318 DPLL frequency is locked
+- **gps_lmk05318_dpll_phase_lock** - LMK05318 DPLL phase is locked
+
+<b>Per-channel RF sensors:</b>
+
+- **lo_locked** - RF local oscillator locked
+- **temp_rfic** - temperature of the RFIC, in degrees Celsius
+
+\section b3xx_misc Miscellaneous
+
+\subsection b3xx_misc_multdev_sync Multi-Device Synchronization
+
+Multiple B310 devices can be synchronized using a shared external clock and PPS signal.
+Connect each device to either the same 10 MHz reference and PPS source or via multi-device sync cable. Then use
+`clock_source=external` and `time_source=external` if using a shared 10 MHz reference, or use `clock_source=sync` and `time_source=sync` if using the multi-device sync cable.
+
+When both devices are configured with matching sync sources, the multi-device session
+will run the synchronization procedure automatically during initialization:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
+auto usrp = uhd::usrp::multi_usrp::make(
+    "resource0=<resource0>,resource1=<resource1>,clock_source=external,time_source=external");
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This procedure must be run during initialization for the ADRV9032 transceiver chips to synchronize correctly.
+
+\subsection b3xx_misc_timedcmds Timed Commands
+
+The B310 supports \ref page_timedcmds the same way as other USRPs. Timed sampling and
+timed command dispatch are handled in the FPGA.
+
+\subsection b3xx_misc_gps GPS
+
+The B310 includes a UBLOX GPS chip. When the B310 has access to GPS satellite signals, it can use this module to read out the current GPS time and location as well as to discipline an onboard clocking chip.
+
+To use the GPS as clock and time source:
+
+~~~{.cpp}
+// Set clock and time source individually:
+usrp->set_clock_source("gpsdo");
+usrp->set_time_source("gpsdo");
+
+// Or equivalently (faster, avoids redundant internal operations):
+usrp->set_sync_source("clock_source=gpsdo,time_source=gpsdo");
+~~~
+
+Note that acquiring a GPS lock can take some time. Query the `gps_locked` motherboard
+sensor before depending on GPS timing accuracy. The GPS chip sends a timepulse signal to an internal clocking chip to discipline the clocking on the B310. The DPLL of this clocking chip can take some time to lock to this timepulse. 
+Query the `ref_locked` motherboard sensor while the clock source is set to gpsdo or sync_gpsdo to determine if the DPLL of the clocking chip has locked to the timepulse signal sent by the GPS chip.
+See \ref b3xx_hw_sensors for all available GPS-related sensors.
+
+\subsection b3xx_misc_subdevspec Subdev Specifications
+
+The B310 has a single radio slot (`A`) with two RF channels. The following subdev
+specifications are available:
+
+ Channel | Subdev Spec
+---------|-------------
+ Channel 0 | `A:0`
+ Channel 1 | `A:1`
+
+\section b3xx_troubleshooting Troubleshooting
+
+\subsection b3xx_troubleshooting_driver Driver not loaded
+
+If the device does not appear under `/sys/bus/pci/drivers/nib310rio/` (Linux):
+
+1. Check that the module is loaded:
+
+       lsmod | grep nib310rio
+
+2. If not, load it:
+
+       sudo modprobe nib310rio
+
+3. Check `dmesg` for errors.
+
+4. If Secure Boot is enabled, the module must be signed. See your distribution's
+   documentation on MOK (Machine Owner Key) enrollment, or disable Secure Boot in
+   the UEFI/BIOS settings.
+
+\subsection b3xx_troubleshooting_performance Poor performance
+
+A PCIe slot that physically fits the B310 does not guarantee that link training will
+negotiate the maximum link speed and link width the B310 supports; for example, a slot may be physically
+larger than it is electrically wired. If the maximum is not achieved, UHD prints a warning when
+running an application. You can also query the pcie_negotiated_speed and pcie_negotiated_width
+sensors (and compare against pcie_max_speed and pcie_max_width).
+
+\subsection b3xx_troubleshooting_thunderbolt Thunderbolt™ variant does not show up
+
+The Thunderbolt™ variant is a PCI Express device whose PCIe link is tunneled over the
+Thunderbolt™ cable. Before UHD can see it, the host must enumerate it as a PCIe device,
+which requires the port, the cable, and the host's Thunderbolt™ security settings to all
+cooperate. If `uhd_find_devices` does not find the device, work through the following.
+
+### 1. Verify the device has power
+
+The Thunderbolt™ variant is powered by the external power connector, not by the
+Thunderbolt™ cable. Make sure the supplied power cable is connected to the USB-C power
+port (not the Thunderbolt™ port) and that the power LED on the front panel is lit. A
+device without power will never enumerate.
+
+### 2. Verify the host port is Thunderbolt™-capable
+
+Not every USB-C port supports Thunderbolt™. A USB-C port that only supports USB cannot tunnel PCIe and will not enumerate the B310. Look for a
+lightning bolt symbol next to the port, or a "4" for USB4 ports, and check the
+platform's documentation.
+
+### 3. Verify the cable
+
+Use a certified Thunderbolt™ cable. Many USB-C cables carry only power and USB data and
+will not pass PCIe traffic.
+
+### 4. Approve (authorize) the Thunderbolt™ device
+
+Because a tunneled PCIe device can perform DMA into host memory, most hosts ship with
+a Thunderbolt™ security level that requires the user to explicitly approve a newly
+connected device. Until it is approved, the device is visible to the Thunderbolt™ stack
+but is not enumerated on the PCIe bus, so UHD cannot see it.
+
+<b>Linux</b>
+
+Approval is handled by the `bolt` daemon and its `boltctl` command-line tool (install
+the `bolt` package if it is missing). List connected devices:
+
+    boltctl list
+
+An unapproved device is reported with `status: connected` and `authorized: no`.
+Authorize it for the current session:
+
+    boltctl authorize <uuid>
+
+Or enroll it permanently, so it is automatically authorized on every future connection:
+
+    boltctl enroll --policy auto <uuid>
+
+<b>Windows</b>
+
+On systems with the Intel Thunderbolt™ software installed, connecting the B310 raises an
+"Approve Thunderbolt™ Devices" dialog. Select the B310 and choose <b>Always Connect</b>
+so it is approved automatically in the future. Approvals can be reviewed and changed
+later from the Thunderbolt™ Control Center (or the Thunderbolt™ Software application) in
+the "Attached Devices" view.
+
+Newer Windows systems using native USB4/Thunderbolt™ support with kernel DMA protection
+approve devices automatically and show no dialog; in that case the device should appear
+directly in Device Manager.
+
+### 5. Check the UEFI/BIOS settings
+
+Several platform settings can prevent PCIe tunneling:
+
+- <b>Thunderbolt™ security level</b>: must be a level that allows PCIe tunneling.
+  "DisplayPort only" or "USB only" will not work.
+- <b>Thunderbolt™/USB4 support</b>: must be enabled.
+- <b>PCIe tunneling</b> (sometimes listed separately, or as "Thunderbolt™ PCIe support"):
+  must be enabled.
+
+\subsection b3xx_troubleshooting_fpga FPGA version mismatch
+
+If initialization fails with an FPGA compatibility number error, first download the appropriate FPGA images:
+
+    uhd_images_downloader --types b3xx
+
+Then update the FPGA image:
+
+    uhd_image_loader --args="type=b3xx,resource=<resource>"
+
+\subsection b3xx_troubleshooting_recovery Device recovery and bricking
+
+It is possible to put the device into an unusable state by loading bad images ("bricking"). Fortunately, the B310 device can be loaded with a good image temporarily using the JTAG interface. 
+Once booted into the safe image, the user can once again load images onto the device using uhd_image_loader.
+
+*/
+// vim:ft=doxygen:
