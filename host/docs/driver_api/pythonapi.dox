@@ -161,5 +161,31 @@ example, if an application needs to call recv() in one thread, and access the
 sample buffer from another thread, a synchronization method (ie. a mutex) must
 be used to safeguard access to that buffer.
 
+\section python_usage_df Discoverable Features
+
+In UHD, discoverable features are features which can be queried at runtime as they
+may not be available on all devices. The Python API provides a mapping to the
+C++ API for discoverable features. Some of these features are available from the
+motherboard controller, others are available from the radio controller. Some of
+the features have already been available in Python, but the discoverable feature
+API provides a more generic way to query them and is more aligned with the C++ API.
+The following snippet shows how to work with discoverable features in the Python API:
+
+~~~{.py}
+import uhd
+
+graph = uhd.rfnoc.RfNoCGraph("type=X440")
+mbc = graph.get_mb_controller()
+has_feature = mbc.has_feature(uhd.types.DiscoverableFeatureID.GPIO_POWER)
+if has_feature:
+    gpio_power = mbc.get_feature(uhd.types.DiscoverableFeatureID.GPIO_POWER)
+
+~~~
+The example shows how to get the GPIO power feature from an X440 device. After getting
+the feature, the methods of the feature can be accessed via the feature object.
+For a functional example of how to use discoverable features in a Python application,
+please refer to the Python SPI example in the UHD source tree at 
+host/examples/python/spi.py.
+
 */
 // vim:ft=doxygen:
