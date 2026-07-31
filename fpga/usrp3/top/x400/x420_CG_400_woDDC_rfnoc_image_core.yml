@@ -14,23 +14,7 @@ default_target: 'X420'                    # Default make target
 # which is achieved by adding resamplers with fixed factor of 3 in the RF data
 # path
 inherit:
-  - 'x420_CG_1000_rfnoc_image_core.yml'
+  - 'x420_CG_1000_woDDC_rfnoc_image_core.yml'
 
 parameters:
   RF_BW: 400
-
-noc_blocks:
-  duc0:
-    parameters:
-      NIPC: 2
-  duc1:
-    parameters:
-      NIPC: 2
-  ddc0:
-    parameters:
-      NIPC: 2
-  ddc1:
-    parameters:
-      NIPC: 2
-
-
