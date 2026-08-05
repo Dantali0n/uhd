@@ -104,7 +104,6 @@ user property (e.g., it can also set a command time). Direct access of user
 properties is thus often not necessary, and can be considered a lower-level API
 than directly calling block APIs.
 
-
 \anchor props_propprop
 ### Property Propagation
 By itself, these relationships between properties are already useful to describe

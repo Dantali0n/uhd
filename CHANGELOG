@@ -47,12 +47,18 @@ Change Log for Releases
         With this update, users can add the DDC and DUC blocks to their custom
         FPGA images for bandwidths up to 1600 MHz (2000 MSps).
     - Shipping FPGA images:
+      - Added new shipping FPGA images for x420:
+        - x420_X4_400
+        - x420_CG_400
       - Added DDC and DUC functionality for all channels to the following
         shipping FPGA images:
-        - x410_X4_400
         - x410_CG_400
+        - x420_X4_400
+        - x420_CG_400
         - x420_X4_1000
         - x420_CG_1000
+        - x440_X4_800
+        - x440_CG_800
         - x440_X4_1600
         - x440_CG_1600
         For custom designs based on one of these updated rfnoc_image_core.yml

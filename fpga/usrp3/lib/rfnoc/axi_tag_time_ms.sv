@@ -10,8 +10,9 @@
 //   timed control port commands. For each timed write to REG_TAG_ADDR, the module
 //   determines which sample in the output word corresponds to the command
 //   timestamp and asserts the corresponding bit in m_axis_dout_ttags when the
-//   current timestamp reaches the commanded time. Untimed commands are passed
-//   through immediately on m_axis_cmd_tdata/tvalid.
+//   current timestamp reaches the commanded time. Untimed commands are eligible
+//   on the next accepted output sample transfer. Timed and untimed commands are
+//   held in the command FIFO, which has 2**CMD_FIFO_SIZE entries.
 // NOTE:
 //   This module has a command stream latency of 4 cycles:
 //   1 cycle - add command to FIFO,

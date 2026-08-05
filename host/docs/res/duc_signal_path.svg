@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560" role="img" aria-labelledby="title desc">
+  <title id="title">RFNoC DUC signal path</title>
+  <desc id="desc">General composition of the digital upconverter: input samples pass through a half-band filter cascade, CIC interpolator, IQ scaling, and DDS frequency shifter before reaching the output. A control lane provides frequency, interpolation, scaling, and timed command configuration.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/>
+    </marker>
+    <marker id="control-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/>
+    </marker>
+    <style>
+      text { font-family: "DejaVu Sans", sans-serif; }
+      .label { fill: #3a414a; }
+      .title { font-size: 28px; font-weight: 700; letter-spacing: 0; }
+      .subtitle { font-size: 15px; fill: #3a414a; }
+      .box-title { font-size: 22px; font-weight: 700; fill: #3a414a; }
+      .box-detail { font-size: 18px; fill: #3a414a; }
+      .annotation { font-size: 14px; fill: #3a414a; }
+      .small { font-size: 16px; fill: #3a414a; }
+      .control-title { font-size: 22px; font-weight: 700; fill: #3a414a; }
+      .control-detail { font-size: 18px; fill: #3a414a; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="560" fill="#ffffff"/>
+
+  <!-- Main signal path -->
+  <g>
+    <rect x="48" y="245" width="128" height="112" rx="6" fill="#f2f3f5" stroke="#000000" stroke-width="2"/>
+    <rect x="210" y="220" width="260" height="162" rx="6" fill="#f2f3f5" stroke="#000000" stroke-width="2"/>
+    <rect x="504" y="220" width="210" height="162" rx="6" fill="#f2f3f5" stroke="#000000" stroke-width="2"/>
+    <rect x="748" y="220" width="210" height="162" rx="6" fill="#f2f3f5" stroke="#000000" stroke-width="2"/>
+    <rect x="992" y="220" width="210" height="162" rx="6" fill="#f2f3f5" stroke="#000000" stroke-width="2"/>
+    <rect x="1240" y="245" width="152" height="112" rx="6" fill="#f2f3f5" stroke="#000000" stroke-width="2"/>
+  </g>
+
+  <!-- Signal connectors -->
+  <g fill="none" stroke="#000000" stroke-width="3" marker-end="url(#arrow)">
+    <path d="M 176 301 H 206"/>
+    <path d="M 470 301 H 500"/>
+    <path d="M 714 301 H 744"/>
+    <path d="M 958 301 H 988"/>
+    <path d="M 1202 301 H 1236"/>
+  </g>
+
+  <!-- Input and output -->
+  <text x="112" y="285" text-anchor="middle" class="label" font-size="22" font-weight="700">Input</text>
+  <text x="112" y="310" text-anchor="middle" class="label" font-size="18">sc16</text>
+  <text x="112" y="333" text-anchor="middle" class="small">baseband</text>
+  <text x="1316" y="285" text-anchor="middle" class="label" font-size="22" font-weight="700">Output</text>
+  <text x="1316" y="310" text-anchor="middle" class="label" font-size="18">sc16</text>
+  <text x="1316" y="333" text-anchor="middle" class="small">wideband</text>
+
+  <!-- Processing blocks -->
+  <text x="340" y="270" text-anchor="middle" class="box-title">Half-band filters</text>
+  <text x="340" y="315" text-anchor="middle" class="box-detail">up to NUM_HB stages</text>
+  <text x="340" y="340" text-anchor="middle" class="box-detail">each stage interpolates by 2</text>
+
+  <text x="609" y="270" text-anchor="middle" class="box-title">CIC interpolator</text>
+  <text x="609" y="315" text-anchor="middle" class="box-detail">integer interpolation</text>
+  <text x="609" y="340" text-anchor="middle" class="box-detail">CIC gain compensation</text>
+
+  <text x="853" y="270" text-anchor="middle" class="box-title">IQ scaling</text>
+  <text x="853" y="330" text-anchor="middle" class="box-detail">filter gain correction</text>
+
+  <text x="1097" y="260" text-anchor="middle" class="box-title">DDS frequency</text>
+  <text x="1097" y="290" text-anchor="middle" class="box-title">shifter</text>
+  <text x="1097" y="330" text-anchor="middle" class="box-detail">complex mixing</text>
+
+  <!-- Control lane -->
+  <rect x="210" y="145" width="992" height="58" rx="6" fill="#f2f3f5" stroke="#000000" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="260" y="169" class="control-title">Control and timing</text>
+  <text x="260" y="188" class="control-detail">frequency, interpolation, IQ scale, and optional timed commands</text>
+  <path d="M 340 203 V 220" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#control-arrow)"/>
+  <path d="M 609 203 V 220" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#control-arrow)"/>
+  <path d="M 853 203 V 220" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#control-arrow)"/>
+  <path d="M 1097 203 V 220" fill="none" stroke="#000000" stroke-width="2" marker-end="url(#control-arrow)"/>
+</svg>
