@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# axi_rfdc_info_memory, capture_sysref, x410_clock_gates, rf_nco_reset_wrapper, x410_rf_reset_controller, x410_rf_reset_controller, gpio_to_axis_mux, clock_mux, clock_mux
+# axi_rfdc_info_memory, capture_sysref, x410_clock_gates, clock_mux, rf_nco_reset_wrapper, x410_rf_reset_controller, x410_rf_reset_controller, gpio_to_axis_mux
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -153,7 +153,6 @@ xilinx.com:ip:xlslice:1.0\
 xilinx.com:ip:axi_protocol_converter:2.1\
 xilinx.com:ip:axi_dma:7.1\
 xilinx.com:ip:smartconnect:1.0\
-xilinx.com:ip:util_ds_buf:2.2\
 "
 
    set list_ips_missing ""
@@ -182,12 +181,11 @@ if { $bCheckModules == 1 } {
 axi_rfdc_info_memory\
 capture_sysref\
 x410_clock_gates\
+clock_mux\
 rf_nco_reset_wrapper\
 x410_rf_reset_controller\
 x410_rf_reset_controller\
 gpio_to_axis_mux\
-clock_mux\
-clock_mux\
 "
 
    set list_mods_missing ""
@@ -215,124 +213,6 @@ if { $bCheckIPsPassed != 1 } {
 # DESIGN PROCs
 ##################################################################
 
-
-# Hierarchical cell: rf_clock_buffers
-proc create_hier_cell_rf_clock_buffers { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_rf_clock_buffers() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-
-  # Create pins
-  create_bd_pin -dir I -from 31 -to 0 rf_rfdc_info_clk40
-  create_bd_pin -dir O rfdc_clk
-  create_bd_pin -dir O -type clk rfdc_clk_2x
-  create_bd_pin -dir I -from 0 -to 0 rfdc_clk_2x_ce
-  create_bd_pin -dir I -from 0 -to 0 -type clk rfdc_clk_2x_pll
-  create_bd_pin -dir I -from 0 -to 0 rfdc_clk_ce
-
-  # Create instance: clock_mux_0, and set properties
-  set block_name clock_mux
-  set block_cell_name clock_mux_0
-  if { [catch {set clock_mux_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $clock_mux_0 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: clock_mux_1, and set properties
-  set block_name clock_mux
-  set block_cell_name clock_mux_1
-  if { [catch {set clock_mux_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $clock_mux_1 eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: const_0, and set properties
-  set const_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_0 ]
-  set_property -dict [ list \
-   CONFIG.CONST_VAL {0} \
- ] $const_0
-
-  # Create instance: rfdc_clk_1_4x_buf, and set properties
-  set rfdc_clk_1_4x_buf [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.2 rfdc_clk_1_4x_buf ]
-  set_property -dict [ list \
-   CONFIG.C_BUFGCE_DIV {8} \
-   CONFIG.C_BUF_TYPE {BUFGCE_DIV} \
- ] $rfdc_clk_1_4x_buf
-
-  # Create instance: rfdc_clk_1x_buf, and set properties
-  set rfdc_clk_1x_buf [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.2 rfdc_clk_1x_buf ]
-  set_property -dict [ list \
-   CONFIG.C_BUFGCE_DIV {2} \
-   CONFIG.C_BUF_TYPE {BUFGCE_DIV} \
- ] $rfdc_clk_1x_buf
-
-  # Create instance: rfdc_clk_2x_buf, and set properties
-  set rfdc_clk_2x_buf [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.2 rfdc_clk_2x_buf ]
-  set_property -dict [ list \
-   CONFIG.C_BUFGCE_DIV {1} \
-   CONFIG.C_BUF_TYPE {BUFGCE_DIV} \
- ] $rfdc_clk_2x_buf
-
-  # Create instance: rfdc_info_clk_bit, and set properties
-  set rfdc_info_clk_bit [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 rfdc_info_clk_bit ]
-  set_property -dict [ list \
-   CONFIG.DIN_FROM {15} \
-   CONFIG.DIN_TO {15} \
-   CONFIG.DOUT_WIDTH {1} \
- ] $rfdc_info_clk_bit
-
-  # Create port connections
-  connect_bd_net -net BUFGCE_I2_1 [get_bd_pins rfdc_clk_2x_pll] [get_bd_pins rfdc_clk_1_4x_buf/BUFGCE_I] [get_bd_pins rfdc_clk_1x_buf/BUFGCE_I] [get_bd_pins rfdc_clk_2x_buf/BUFGCE_I]
-  connect_bd_net -net clock_mux_0_clk_out [get_bd_pins rfdc_clk] [get_bd_pins clock_mux_0/clk_out]
-  connect_bd_net -net clock_mux_1_clk_out [get_bd_pins rfdc_clk_2x] [get_bd_pins clock_mux_1/clk_out]
-  connect_bd_net -net rf_rfdc_info_clk40_1 [get_bd_pins rf_rfdc_info_clk40] [get_bd_pins rfdc_info_clk_bit/Din]
-  connect_bd_net -net rfdc_clk_1_4x_buf_BUFGCE_O [get_bd_pins clock_mux_0/clk1] [get_bd_pins rfdc_clk_1_4x_buf/BUFGCE_O]
-  connect_bd_net -net rfdc_clk_1x_buf1_BUFGCE_O [get_bd_pins clock_mux_0/clk0] [get_bd_pins rfdc_clk_1x_buf/BUFGCE_O]
-  connect_bd_net -net rfdc_clk_2x_buf_BUFGCE_O [get_bd_pins clock_mux_1/clk0] [get_bd_pins clock_mux_1/clk1] [get_bd_pins rfdc_clk_2x_buf/BUFGCE_O]
-  connect_bd_net -net rfdc_clk_2x_ce_1 [get_bd_pins rfdc_clk_2x_ce] [get_bd_pins rfdc_clk_2x_buf/BUFGCE_CE]
-  connect_bd_net -net rfdc_clk_ce_1 [get_bd_pins rfdc_clk_ce] [get_bd_pins rfdc_clk_1_4x_buf/BUFGCE_CE] [get_bd_pins rfdc_clk_1x_buf/BUFGCE_CE]
-  connect_bd_net -net xlconstant_0_dout [get_bd_pins clock_mux_1/sel] [get_bd_pins const_0/dout] [get_bd_pins rfdc_clk_1_4x_buf/BUFGCE_CLR] [get_bd_pins rfdc_clk_1x_buf/BUFGCE_CLR] [get_bd_pins rfdc_clk_2x_buf/BUFGCE_CLR]
-  connect_bd_net -net xlslice_0_Dout [get_bd_pins clock_mux_0/sel] [get_bd_pins rfdc_info_clk_bit/Dout]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
 
 # Hierarchical cell: calibration_muxes
 proc create_hier_cell_calibration_muxes { parentCell nameHier } {
@@ -925,6 +805,17 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
      return 1
    }
   
+  # Create instance: clock_mux_0, and set properties
+  set block_name clock_mux
+  set block_cell_name clock_mux_0
+  if { [catch {set clock_mux_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $clock_mux_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
   # Create instance: const_1, and set properties
   set const_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_1 ]
 
@@ -942,7 +833,7 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
    CONFIG.CLKOUT2_PHASE_ERROR {124.626} \
    CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {122.88} \
    CONFIG.CLKOUT2_USED {true} \
-   CONFIG.CLKOUT3_DRIVES {No_buffer} \
+   CONFIG.CLKOUT3_DRIVES {BUFGCE} \
    CONFIG.CLKOUT3_JITTER {98.017} \
    CONFIG.CLKOUT3_PHASE_ERROR {124.626} \
    CONFIG.CLKOUT3_REQUESTED_OUT_FREQ {184.32} \
@@ -952,18 +843,23 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
    CONFIG.CLKOUT4_PHASE_ERROR {124.626} \
    CONFIG.CLKOUT4_REQUESTED_OUT_FREQ {245.76} \
    CONFIG.CLKOUT4_USED {true} \
-   CONFIG.CLKOUT5_DRIVES {No_buffer} \
+   CONFIG.CLKOUT5_DRIVES {BUFGCE} \
    CONFIG.CLKOUT5_JITTER {87.938} \
    CONFIG.CLKOUT5_PHASE_ERROR {124.626} \
    CONFIG.CLKOUT5_REQUESTED_OUT_FREQ {368.64} \
    CONFIG.CLKOUT5_USED {true} \
-   CONFIG.CLKOUT6_DRIVES {Buffer} \
+   CONFIG.CLKOUT6_DRIVES {BUFGCE} \
+   CONFIG.CLKOUT6_JITTER {122.594} \
+   CONFIG.CLKOUT6_PHASE_ERROR {124.626} \
+   CONFIG.CLKOUT6_REQUESTED_OUT_FREQ {46.08} \
+   CONFIG.CLKOUT6_USED {true} \
    CONFIG.CLKOUT7_DRIVES {Buffer} \
    CONFIG.CLK_OUT1_PORT {pll_ref_clk_out} \
    CONFIG.CLK_OUT2_PORT {data_clk} \
    CONFIG.CLK_OUT3_PORT {rfdc_clk} \
    CONFIG.CLK_OUT4_PORT {data_clk_2x} \
    CONFIG.CLK_OUT5_PORT {rfdc_clk_2x} \
+   CONFIG.CLK_OUT6_PORT {rfdc_clk_1_4x} \
    CONFIG.ENABLE_CLOCK_MONITOR {false} \
    CONFIG.FEEDBACK_SOURCE {FDBK_AUTO} \
    CONFIG.MMCM_CLKFBOUT_MULT_F {24.000} \
@@ -974,8 +870,9 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
    CONFIG.MMCM_CLKOUT2_DIVIDE {8} \
    CONFIG.MMCM_CLKOUT3_DIVIDE {6} \
    CONFIG.MMCM_CLKOUT4_DIVIDE {4} \
+   CONFIG.MMCM_CLKOUT5_DIVIDE {32} \
    CONFIG.MMCM_DIVCLK_DIVIDE {1} \
-   CONFIG.NUM_OUT_CLKS {5} \
+   CONFIG.NUM_OUT_CLKS {6} \
    CONFIG.PHASE_DUTY_CONFIG {false} \
    CONFIG.PRIMITIVE {MMCM} \
    CONFIG.PRIM_IN_FREQ {61.44} \
@@ -1052,9 +949,6 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
   set_property -dict [ list \
    CONFIG.C_ALL_INPUTS {1} \
  ] $reg_rfdc_info
-
-  # Create instance: rf_clock_buffers
-  create_hier_cell_rf_clock_buffers $hier_obj rf_clock_buffers
 
   # Create instance: rf_data_converter, and set properties
   set rf_data_converter [ create_bd_cell -type ip -vlnv xilinx.com:ip:usp_rf_data_converter:2.5 rf_data_converter ]
@@ -1345,6 +1239,14 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
      return 1
    }
   
+  # Create instance: rfdc_info_clk_bit, and set properties
+  set rfdc_info_clk_bit [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 rfdc_info_clk_bit ]
+  set_property -dict [ list \
+   CONFIG.DIN_FROM {15} \
+   CONFIG.DIN_TO {15} \
+   CONFIG.DOUT_WIDTH {1} \
+ ] $rfdc_info_clk_bit
+
   # Create instance: slice_iqswap_11_8_radio0, and set properties
   set slice_iqswap_11_8_radio0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 slice_iqswap_11_8_radio0 ]
   set_property -dict [ list \
@@ -1435,8 +1337,8 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
   connect_bd_net -net clock_gates_0_cSoftwareStatus [get_bd_pins clock_gates_0/rSoftwareStatus] [get_bd_pins reg_clock_gate_control/gpio2_io_i]
   connect_bd_net -net clock_gates_0_rGatedBaseClksValid [get_bd_pins gated_base_clks_valid_clk40] [get_bd_pins clock_gates_0/rGatedBaseClksValid]
   connect_bd_net -net clock_gates_0_rPllLocked [get_bd_pins data_clock_locked] [get_bd_pins clock_gates_0/rPllLocked]
-  connect_bd_net -net clock_gates_0_rf2EnableBufg [get_bd_pins clock_gates_0/aEnableRfBufg2x] [get_bd_pins rf_clock_buffers/rfdc_clk_2x_ce]
-  connect_bd_net -net clock_gates_0_rfEnableBufg [get_bd_pins clock_gates_0/aEnableRfBufg1x] [get_bd_pins rf_clock_buffers/rfdc_clk_ce]
+  connect_bd_net -net clock_gates_0_rf2EnableBufg [get_bd_pins clock_gates_0/aEnableRfBufg2x] [get_bd_pins data_clock_mmcm/rfdc_clk_2x_ce]
+  connect_bd_net -net clock_gates_0_rfEnableBufg [get_bd_pins clock_gates_0/aEnableRfBufg1x] [get_bd_pins data_clock_mmcm/rfdc_clk_1_4x_ce] [get_bd_pins data_clock_mmcm/rfdc_clk_ce]
   connect_bd_net -net dSysrefWaitCycles_0_1 [get_bd_pins sysref_wait_cycles] [get_bd_pins rf_nco_reset_wrapper_0/d_sysref_wait_cycles]
   connect_bd_net -net dac_reset_pulse_dclk_1 [get_bd_pins dac_reset_pulse_dclk] [get_bd_pins rf_reset_controller_0/dDacResetPulse] [get_bd_pins rf_reset_controller_1/dDacResetPulse]
   connect_bd_net -net data_clk_2x_pll [get_bd_pins clock_gates_0/DataClk2xPll] [get_bd_pins data_clock_mmcm/data_clk_2x]
@@ -1444,8 +1346,10 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
   connect_bd_net -net data_clock_mmcm_data_clk1 [get_bd_pins clock_gates_0/DataClk1xPll] [get_bd_pins data_clock_mmcm/data_clk]
   connect_bd_net -net data_clock_mmcm_data_clk_2x [get_bd_pins data_clk_2x] [get_bd_pins clock_gates_0/DataClk2x] [get_bd_pins rf_reset_controller_0/DataClk2x] [get_bd_pins rf_reset_controller_1/DataClk2x]
   connect_bd_net -net data_clock_mmcm_locked [get_bd_pins clock_gates_0/aPllLocked] [get_bd_pins data_clock_mmcm/locked]
-  connect_bd_net -net data_clock_mmcm_rfdc_clk [get_bd_pins rfdc_clk] [get_bd_pins calibration_muxes/s_axi_aclk_0] [get_bd_pins capture_sysref/rfdc_clk] [get_bd_pins rf_clock_buffers/rfdc_clk] [get_bd_pins rf_data_converter/m0_axis_aclk] [get_bd_pins rf_data_converter/m2_axis_aclk] [get_bd_pins rf_data_converter/s0_axis_aclk] [get_bd_pins rf_data_converter/s1_axis_aclk] [get_bd_pins rf_reset_controller_0/RfClk] [get_bd_pins rf_reset_controller_1/RfClk]
-  connect_bd_net -net data_clock_mmcm_rfdc_clk_2x1 [get_bd_pins axi_interconnect_rf/M02_ACLK] [get_bd_pins axi_interconnect_rf/M11_ACLK] [get_bd_pins data_clock_mmcm/rfdc_clk_2x] [get_bd_pins reg_invert_iq_radio0/s_axi_aclk] [get_bd_pins reg_invert_iq_radio1/s_axi_aclk] [get_bd_pins rf_clock_buffers/rfdc_clk_2x_pll] [get_bd_pins rf_reset_controller_0/RfClk2x] [get_bd_pins rf_reset_controller_1/RfClk2x]
+  connect_bd_net -net data_clock_mmcm_rfdc_clk [get_bd_pins clock_mux_0/clk0] [get_bd_pins data_clock_mmcm/rfdc_clk]
+  connect_bd_net -net data_clock_mmcm_rfdc_clk1 [get_bd_pins rfdc_clk] [get_bd_pins calibration_muxes/s_axi_aclk_0] [get_bd_pins capture_sysref/rfdc_clk] [get_bd_pins clock_mux_0/clk_out] [get_bd_pins rf_data_converter/m0_axis_aclk] [get_bd_pins rf_data_converter/m2_axis_aclk] [get_bd_pins rf_data_converter/s0_axis_aclk] [get_bd_pins rf_data_converter/s1_axis_aclk] [get_bd_pins rf_reset_controller_0/RfClk] [get_bd_pins rf_reset_controller_1/RfClk]
+  connect_bd_net -net data_clock_mmcm_rfdc_clk_1_4x [get_bd_pins clock_mux_0/clk1] [get_bd_pins data_clock_mmcm/rfdc_clk_1_4x]
+  connect_bd_net -net data_clock_mmcm_rfdc_clk_2x1 [get_bd_pins rfdc_clk_2x] [get_bd_pins axi_interconnect_rf/M02_ACLK] [get_bd_pins axi_interconnect_rf/M11_ACLK] [get_bd_pins data_clock_mmcm/rfdc_clk_2x] [get_bd_pins reg_invert_iq_radio0/s_axi_aclk] [get_bd_pins reg_invert_iq_radio1/s_axi_aclk] [get_bd_pins rf_reset_controller_0/RfClk2x] [get_bd_pins rf_reset_controller_1/RfClk2x]
   connect_bd_net -net data_clock_mmcm_tdc_ref_clk [get_bd_pins pll_ref_clk_out] [get_bd_pins capture_sysref/pll_ref_clk] [get_bd_pins data_clock_mmcm/pll_ref_clk_out] [get_bd_pins rf_nco_reset_wrapper_0/pll_ref_clk] [get_bd_pins rf_reset_controller_0/PllRefClk] [get_bd_pins rf_reset_controller_1/PllRefClk]
   connect_bd_net -net enable_gated_clocks_clk40_1 [get_bd_pins enable_gated_clocks_clk40] [get_bd_pins clock_gates_0/rSafeToEnableGatedClks]
   connect_bd_net -net enable_rclk_0_1 [get_bd_pins enable_sysref_rclk] [get_bd_pins capture_sysref/enable_rclk]
@@ -1456,7 +1360,6 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
   connect_bd_net -net reg_rf_reset_control1_gpio_io_o [get_bd_pins clock_gates_0/rSoftwareControl] [get_bd_pins reg_clock_gate_control/gpio_io_o]
   connect_bd_net -net reg_rf_reset_control_radio1_gpio_io_o [get_bd_pins reg_rf_reset_control_radio1/gpio_io_o] [get_bd_pins rf_reset_controller_1/cSoftwareControl]
   connect_bd_net -net reg_rf_resets_gpio_io_o [get_bd_pins reg_rf_reset_control_radio0/gpio_io_o] [get_bd_pins rf_reset_controller_0/cSoftwareControl]
-  connect_bd_net -net rf_clock_buffers_rfdc_clk_2x [get_bd_pins rfdc_clk_2x] [get_bd_pins rf_clock_buffers/rfdc_clk_2x]
   connect_bd_net -net rf_data_converter_adc0_01_over_threshold1 [get_bd_pins ThresholdRegister/In0] [get_bd_pins rf_data_converter/adc0_01_over_threshold1]
   connect_bd_net -net rf_data_converter_adc0_01_over_threshold2 [get_bd_pins ThresholdRegister/In1] [get_bd_pins rf_data_converter/adc0_01_over_threshold2]
   connect_bd_net -net rf_data_converter_adc0_23_over_threshold1 [get_bd_pins ThresholdRegister/In2] [get_bd_pins rf_data_converter/adc0_23_over_threshold1]
@@ -1492,7 +1395,8 @@ proc create_hier_cell_rfdc { parentCell nameHier } {
   connect_bd_net -net rf_reset_controller_1_cSoftwareStatus [get_bd_pins reg_rf_reset_control_radio1/gpio2_io_i] [get_bd_pins rf_reset_controller_1/cSoftwareStatus]
   connect_bd_net -net rf_reset_controller_1_rAdcRfdcAxiReset_n [get_bd_pins rf_data_converter/m2_axis_aresetn] [get_bd_pins rf_reset_controller_1/rAdcRfdcAxiReset_n]
   connect_bd_net -net rf_reset_controller_1_rDacRfdcAxiReset_n [get_bd_pins rf_data_converter/s1_axis_aresetn] [get_bd_pins rf_reset_controller_1/rDacRfdcAxiReset_n]
-  connect_bd_net -net rf_rfdc_info_sclk_1 [get_bd_pins rf_rfdc_info_sclk] [get_bd_pins reg_rfdc_info/gpio_io_i] [get_bd_pins rf_clock_buffers/rf_rfdc_info_clk40]
+  connect_bd_net -net rf_rfdc_info_sclk_1 [get_bd_pins rf_rfdc_info_sclk] [get_bd_pins reg_rfdc_info/gpio_io_i] [get_bd_pins rfdc_info_clk_bit/Din]
+  connect_bd_net -net rfdc_info_clk_bit_Dout [get_bd_pins clock_mux_0/sel] [get_bd_pins rfdc_info_clk_bit/Dout]
   connect_bd_net -net rfdc_regs_gpio_io_o [get_bd_pins reg_invert_iq_radio0/gpio_io_o] [get_bd_pins slice_iqswap_11_8_radio0/Din] [get_bd_pins slice_iqswap_3_0_radio0/Din]
   connect_bd_net -net s_axi_aresetn_0_1 [get_bd_pins s_axi_config_aresetn] [get_bd_pins ThresholdRegister/s_axi_config_aresetn] [get_bd_pins axi_interconnect_rf/ARESETN] [get_bd_pins axi_interconnect_rf/M00_ARESETN] [get_bd_pins axi_interconnect_rf/M03_ARESETN] [get_bd_pins axi_interconnect_rf/M04_ARESETN] [get_bd_pins axi_interconnect_rf/M05_ARESETN] [get_bd_pins axi_interconnect_rf/M06_ARESETN] [get_bd_pins axi_interconnect_rf/M07_ARESETN] [get_bd_pins axi_interconnect_rf/M08_ARESETN] [get_bd_pins axi_interconnect_rf/M09_ARESETN] [get_bd_pins axi_interconnect_rf/M10_ARESETN] [get_bd_pins axi_interconnect_rf/M12_ARESETN] [get_bd_pins axi_interconnect_rf/S00_ARESETN] [get_bd_pins axi_rfdc_info_memory_0/s_axi_aresetn] [get_bd_pins calibration_muxes/s_axi_config_aresetn] [get_bd_pins reg_clock_gate_control/s_axi_aresetn] [get_bd_pins reg_reset_mmcm/s_axi_aresetn] [get_bd_pins reg_rf_axi_status/s_axi_aresetn] [get_bd_pins reg_rf_reset_control_radio0/s_axi_aresetn] [get_bd_pins reg_rf_reset_control_radio1/s_axi_aresetn] [get_bd_pins reg_rfdc_info/s_axi_aresetn] [get_bd_pins rf_data_converter/s_axi_aresetn]
   connect_bd_net -net s_axi_config_clk_1 [get_bd_pins s_axi_config_clk] [get_bd_pins ThresholdRegister/s_axi_config_clk] [get_bd_pins axi_interconnect_rf/ACLK] [get_bd_pins axi_interconnect_rf/M00_ACLK] [get_bd_pins axi_interconnect_rf/M01_ACLK] [get_bd_pins axi_interconnect_rf/M03_ACLK] [get_bd_pins axi_interconnect_rf/M04_ACLK] [get_bd_pins axi_interconnect_rf/M05_ACLK] [get_bd_pins axi_interconnect_rf/M06_ACLK] [get_bd_pins axi_interconnect_rf/M07_ACLK] [get_bd_pins axi_interconnect_rf/M08_ACLK] [get_bd_pins axi_interconnect_rf/M09_ACLK] [get_bd_pins axi_interconnect_rf/M10_ACLK] [get_bd_pins axi_interconnect_rf/M12_ACLK] [get_bd_pins axi_interconnect_rf/S00_ACLK] [get_bd_pins axi_rfdc_info_memory_0/s_axi_aclk] [get_bd_pins calibration_muxes/s_axi_config_clk] [get_bd_pins clock_gates_0/ReliableClk] [get_bd_pins data_clock_mmcm/s_axi_aclk] [get_bd_pins reg_clock_gate_control/s_axi_aclk] [get_bd_pins reg_reset_mmcm/s_axi_aclk] [get_bd_pins reg_rf_axi_status/s_axi_aclk] [get_bd_pins reg_rf_reset_control_radio0/s_axi_aclk] [get_bd_pins reg_rf_reset_control_radio1/s_axi_aclk] [get_bd_pins reg_rfdc_info/s_axi_aclk] [get_bd_pins rf_data_converter/s_axi_aclk] [get_bd_pins rf_nco_reset_wrapper_0/config_clk] [get_bd_pins rf_reset_controller_0/ConfigClk] [get_bd_pins rf_reset_controller_1/ConfigClk]
@@ -3659,7 +3563,7 @@ proc create_root_design { parentCell } {
  ] $rfdc_clk
   set rfdc_clk_2x [ create_bd_port -dir O -type clk rfdc_clk_2x ]
   set_property -dict [ list \
-   CONFIG.FREQ_HZ {184320000} \
+   CONFIG.FREQ_HZ {368640000} \
  ] $rfdc_clk_2x
   set rfdc_irq [ create_bd_port -dir O -type intr rfdc_irq ]
   set s_axi_hp0_aclk [ create_bd_port -dir I -type clk -freq_hz 40000000 s_axi_hp0_aclk ]
