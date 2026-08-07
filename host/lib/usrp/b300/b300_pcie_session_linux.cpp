@@ -7,7 +7,6 @@
 #include "./inchworm/user/libnifpga-usrp/src/Exception.h"
 #include "./inchworm/user/libnifpga-usrp/src/SysfsFile.h"
 #include "./inchworm/user/libnifpga-usrp/src/Timer.h"
-#include "./inchworm/user/libnifpga-usrp/src/nib310rio.h"
 #include "b300_regs.hpp"
 #include <uhd/config.h>
 #include <uhd/exception.hpp>
@@ -15,6 +14,7 @@
 #include <uhdlib/usrp/b300/b300_pcie_fifo.hpp>
 #include <uhdlib/usrp/b300/b300_pcie_session.hpp>
 #include <fcntl.h>
+#include <nib310rio/nib310rio.h>
 #include <system_error>
 #include <unistd.h>
 #include <cerrno>

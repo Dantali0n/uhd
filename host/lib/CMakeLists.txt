@@ -65,7 +65,26 @@ LIBUHD_REGISTER_COMPONENT("USB" ENABLE_USB ON "ENABLE_LIBUHD;LIBUSB_FOUND" OFF O
 # Devices
 LIBUHD_REGISTER_COMPONENT("B100" ENABLE_B100 ON "ENABLE_LIBUHD;ENABLE_USB" OFF OFF)
 LIBUHD_REGISTER_COMPONENT("B200" ENABLE_B200 ON "ENABLE_LIBUHD;ENABLE_USB" OFF OFF)
-LIBUHD_REGISTER_COMPONENT("B300" ENABLE_B300 ON "ENABLE_LIBUHD" OFF OFF)
+# B300 support is available on Linux and Windows.
+# Only Linux requires the nib310rio kernel driver userspace header.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_file(NIB310RIO_HEADER
+        NAMES nib310rio/nib310rio.h
+        DOC "nib310rio kernel driver userspace header (from nib310rio-dev package)")
+    if(NIB310RIO_HEADER)
+        set(NIB310RIO_FOUND TRUE)
+    else()
+        set(NIB310RIO_FOUND FALSE)
+        message(STATUS "nib310rio/nib310rio.h not found — B300 support requires the nib310rio-dev package.")
+    endif()
+elseif(WIN32)
+    # Windows B300 support does not depend on nib310rio/nib310rio.h.
+    set(NIB310RIO_FOUND TRUE)
+else()
+    # B300 is not supported on other platforms (e.g., macOS).
+    set(NIB310RIO_FOUND FALSE)
+endif()
+LIBUHD_REGISTER_COMPONENT("B300" ENABLE_B300 ON "ENABLE_LIBUHD;NIB310RIO_FOUND" OFF OFF)
 LIBUHD_REGISTER_COMPONENT("USRP1" ENABLE_USRP1 ON "ENABLE_LIBUHD;ENABLE_USB" OFF OFF)
 LIBUHD_REGISTER_COMPONENT("USRP2" ENABLE_USRP2 ON "ENABLE_LIBUHD" OFF OFF)
 LIBUHD_REGISTER_COMPONENT("X300" ENABLE_X300 ON "ENABLE_LIBUHD" OFF OFF)

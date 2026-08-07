@@ -15,7 +15,7 @@
 #include "Fifo.h"
 #include "ErrnoMap.h"
 #include "Exception.h"
-#include "nib310rio.h"
+#include <nib310rio/nib310rio.h>
 #include <unistd.h> // sysconf
 #include <cassert> // assert
 #include <cstdlib> // valloc
