@@ -21,6 +21,15 @@ ENV VCPKG_DISABLE_METRICS=1
 # Enable long file paths (>260 characters)
 RUN reg add HKLM\SYSTEM\CurrentControlSet\Control\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f
 
+# Install vs build tools
+COPY .ci/docker/scripts/install-vs-buildtools.ps1 C:/Temp/install-vs-buildtools.ps1
+RUN powershell -NoProfile -ExecutionPolicy Bypass -Command \
+    "& 'C:\Temp\install-vs-buildtools.ps1' \
+    -Url '%VS_BUILD_TOOLS_URL%' \
+    -InstallerArgs '--quiet','--wait','--norestart','--nocache', \
+        '--add','Microsoft.VisualStudio.Workload.VCTools', \
+        '--includeRecommended'"
+
 RUN setx chocolateyVersion 1.4.0 /m
 RUN @"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" \
     -NoProfile -InputFormat None -ExecutionPolicy Bypass \
@@ -28,23 +37,19 @@ RUN @"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" \
     iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && \
     SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin" && \
     choco config set webRequestTimeoutSeconds 600
-RUN choco install -y doxygen.install --version=1.9.8
-RUN choco install -y cmake.install --installargs 'ADD_CMAKE_TO_PATH=System' --version=3.22.3
-RUN choco install -y git
-RUN choco install -y NSIS --version=3.06.1
-RUN choco install -y vim
-RUN choco install -y python3 --version=%PYTHON_VERSION%
-
-# Install vs build tools
-COPY .ci/docker/scripts/check-url.ps1 C:/Temp/check-url.ps1
-RUN powershell -NoProfile -ExecutionPolicy Bypass -File C:\Temp\check-url.ps1 \
-    -Url "%VS_BUILD_TOOLS_URL%"
-RUN powershell -NoProfile -ExecutionPolicy Bypass -Command \
-    Invoke-WebRequest "%VS_BUILD_TOOLS_URL%" \
-    -OutFile "%TEMP%\vs_buildtools.exe" -UseBasicParsing
-RUN "%TEMP%\vs_buildtools.exe"  --quiet --wait --norestart --noUpdateInstaller \
-    --add Microsoft.VisualStudio.Workload.VCTools \
-    --includeRecommended
+COPY .ci/docker/scripts/install-choco-package.ps1 C:/Temp/install-choco-package.ps1
+RUN powershell -NoProfile -ExecutionPolicy Bypass -File C:\Temp\install-choco-package.ps1 \
+        -PackageName doxygen.install -Version 1.9.8 && \
+    powershell -NoProfile -ExecutionPolicy Bypass -File C:\Temp\install-choco-package.ps1 \
+        -PackageName cmake.install -Version 3.22.3 -InstallArgs ADD_CMAKE_TO_PATH=System && \
+    powershell -NoProfile -ExecutionPolicy Bypass -File C:\Temp\install-choco-package.ps1 \
+        -PackageName git && \
+    powershell -NoProfile -ExecutionPolicy Bypass -File C:\Temp\install-choco-package.ps1 \
+        -PackageName NSIS -Version 3.06.1 && \
+    powershell -NoProfile -ExecutionPolicy Bypass -File C:\Temp\install-choco-package.ps1 \
+        -PackageName vim && \
+    powershell -NoProfile -ExecutionPolicy Bypass -File C:\Temp\install-choco-package.ps1 \
+        -PackageName python3 -Version %PYTHON_VERSION%
 
 # Optionally use cached index.
 RUN if defined PIP_INDEX_URL ( \
@@ -53,9 +58,9 @@ RUN if defined PIP_INDEX_URL ( \
     )
 
 COPY host/python/requirements.txt C:/Temp/requirements.txt
-RUN pip config list
-RUN python -m pip install --upgrade pip
-RUN pip install -r C:/Temp/requirements.txt
+RUN pip config list && \
+    python -m pip install --upgrade pip && \
+    python -m pip install -r C:/Temp/requirements.txt
 
 RUN setx VCPKG_INSTALL_DIR "c:\\vcpkg" /m
 RUN git clone https://github.com/microsoft/vcpkg %VCPKG_INSTALL_DIR% && \
@@ -64,8 +69,11 @@ RUN git clone https://github.com/microsoft/vcpkg %VCPKG_INSTALL_DIR% && \
 # Add custom UHD vcpkg triplet
 COPY host/cmake/vcpkg/* c:/vcpkg/triplets/
 
-RUN mkdir c:\\uhd-vcpkg
+RUN powershell -NoProfile -ExecutionPolicy Bypass -Command \
+    "New-Item -ItemType Directory -Path 'c:\uhd-vcpkg' -Force | Out-Null"
 COPY .ci/docker/vcpkg/${VCPKG_MANIFEST_FILE} c:/uhd-vcpkg/vcpkg.json
-RUN cd c:\\uhd-vcpkg && %VCPKG_INSTALL_DIR%\vcpkg.exe install \
-    --triplet uhd-x64-windows-static-md \
-    --clean-after-build
+COPY .ci/docker/scripts/install-vcpkg-triplet.ps1 C:/Temp/install-vcpkg-triplet.ps1
+RUN powershell -NoProfile -ExecutionPolicy Bypass -File C:\Temp\install-vcpkg-triplet.ps1 \
+    -ManifestDir C:\uhd-vcpkg \
+    -Triplet %VCPKG_TARGET_TRIPLET% \
+    -VcpkgRoot %VCPKG_INSTALL_DIR%
