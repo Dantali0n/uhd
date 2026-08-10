@@ -4,7 +4,295 @@
 
 \section b3xx_kernel_linux Installing the Linux Kernel Module
 
+\subsection b3xx_kernel_linux_overview Overview
+
+The B310 PCIe transport on Linux requires the `nib310rio` kernel module.
+Without this module, UHD cannot discover or use the B310 device over the PCIe or Thunderbolt interface.
+
+\subsection b3xx_kernel_linux_requirements Requirements
+
+- Linux kernel headers for the running kernel
+- Build tools (`gcc`, `make`)
+- `dkms` (recommended for package-based installs)
+
+Example (Ubuntu/Debian):
+
+    sudo apt update
+    sudo apt install -y dkms gcc make linux-headers-$(uname -r)
+
+\subsection b3xx_kernel_linux_install_desktop Linux Desktop Installation
+
+For standard Linux desktop systems (for example Ubuntu or Fedora), install the
+`nib310rio` driver packages and ensure the module is loaded.
+
+Download the latest Linux kernel driver packages from
+<a href="https://files.ettus.com/binaries/uhd/latest_release">Ettus UHD latest release binaries</a>.
+
+
+The package names and roles are:
+
+- `nib310rio-dkms`: Required runtime kernel driver package. This package builds
+	and installs the `nib310rio` kernel module via DKMS.
+- `nib310rio-dev`: Development header package. This installs
+	`/usr/include/nib310rio/nib310rio.h`, which is required to compile B310
+	support in UHD.
+
+Example install flow (Debian/Ubuntu):
+
+    sudo dpkg -i nib310rio-dkms_<version>_all.deb
+    sudo dpkg -i nib310rio-dev_<version>_all.deb
+
+For Fedora/RHEL-like systems, install the equivalent RPM packages:
+
+    sudo dnf install ./nib310rio-dkms-<version>-1.noarch.rpm
+    sudo dnf install ./nib310rio-dev-<version>-1.noarch.rpm
+
+After installation, validate that the module is present:
+
+    lsmod | grep nib310rio
+
+If needed, load it manually:
+
+    sudo modprobe nib310rio
+
+Then verify that UHD can discover the device:
+
+    uhd_find_devices --args type=b3xx
+
+\subsection b3xx_kernel_linux_troubleshooting Linux Package Troubleshooting
+
+The checks below summarize common package-installation failures and validation
+steps observed in the B310 Linux driver package installation flow.
+
+\subsubsection b3xx_kernel_linux_troubleshooting_deps Dependency issues
+
+If `dkms` install reports missing `pahole`:
+
+    sudo apt install -y pahole
+    sudo apt install -y dkms
+
+If `dpkg -i` leaves `nib310rio-dkms` unconfigured due to unmet dependencies:
+
+    sudo apt --fix-broken install -y
+    sudo dpkg --configure -a
+
+\subsubsection b3xx_kernel_linux_troubleshooting_validate Validate DKMS and module placement
+
+After package installation, validate DKMS state and module location:
+
+    dkms status | grep nib310rio
+    modinfo -n nib310rio
+
+Expected:
+
+- `dkms status` reports `nib310rio` installed for the running kernel.
+- `modinfo -n nib310rio` resolves to a path under `/lib/modules/...`.
+
+\subsubsection b3xx_kernel_linux_troubleshooting_output Sample package installation output
+
+The following abbreviated output snippets are examples of successful package
+installation.
+
+Debian/Ubuntu (`nib310rio-dkms`):
+
+~~~
+$ sudo dpkg -i nib310rio-dkms_<version>_all.deb
+Setting up nib310rio-dkms (<version>) ...
+Building module:
+...
+nib310rio.ko:
+...
+Installing to /lib/modules/<kernel>/updates/dkms/
+depmod...
+~~~
+
+Fedora/RHEL (`nib310rio-dkms`):
+
+~~~
+$ sudo dnf install ./nib310rio-dkms-<version>-1.noarch.rpm
+Installing:
+  nib310rio-dkms-<version>-1.noarch
+...
+Building module(s)... done.
+Installing /lib/modules/<kernel>/.../nib310rio.ko.xz
+Running depmod... done.
+Complete!
+~~~
+
+\subsubsection b3xx_kernel_linux_troubleshooting_secureboot Secure Boot considerations
+
+On Secure Boot systems, module build/install may succeed but `modprobe` can fail
+with key rejection until a trusted key is enrolled and the module is rebuilt and
+re-signed. If this occurs, follow your distribution's MOK enrollment flow, then
+rebuild/reinstall the DKMS module.
+
+Typical error:
+
+~~~
+modprobe: ERROR: could not insert 'nib310rio': Key was rejected by service
+~~~
+
+On Debian/Ubuntu systems, the flow is typically:
+
+1. Install MOK tooling:
+
+	sudo apt install -y shim-signed mokutil
+
+2. Reboot and enroll the key in MOK Manager:
+   - Select `Enroll MOK`.
+   - Select `Continue`.
+   - Select `Yes`.
+   - Enter the enrollment password set during `shim-signed` installation.
+   - Select `Reboot`.
+
+3. Rebuild and reinstall the DKMS module after enrollment:
+
+	sudo dkms remove nib310rio/<version> --all || true
+	sudo dkms add -m nib310rio -v <version>
+	sudo dkms build -m nib310rio -v <version> -k "$(uname -r)"
+	sudo dkms install -m nib310rio -v <version> -k "$(uname -r)" --force
+	sudo depmod -a
+	sudo modprobe nib310rio
+
+4. Verify Secure Boot state, module signer, and module load:
+
+	mokutil --sb-state
+	modinfo nib310rio | grep -i signer
+	lsmod | grep nib310rio
+
+\subsubsection b3xx_kernel_linux_troubleshooting_artifacts Validate installed artifacts
+
+Confirm that expected packaging artifacts are present:
+
+    test -f /etc/udev/rules.d/99-nib310rio.rules && echo "udev rule present"
+    test -f /etc/modules-load.d/nib310rio.conf && echo "autoload config present"
+    test -f /usr/include/nib310rio/nib310rio.h && echo "dev header present"
+
+\subsection b3xx_kernel_linux_jetson Jetson AGX Orin
+
+This section targets L4T 36.4.4 / JetPack 6.x.
+
+On Jetson AGX Orin, the B310 software path requires Linux DMA-BUF heap support.
+In particular, `/dev/dma_heap/system` must be available. If this device node is
+missing, DMA-based operation will fail and only limited BAR0 access may work.
+
+\subsubsection b3xx_kernel_linux_jetson_outline Recommended Jetson workflow
+
+Use the following sequence when enabling B310 support on Jetson:
+
+1. Enable DMA-BUF feature support (if missing) and verify `/dev/dma_heap/system`.
+2. Install the `nib310rio` kernel driver packages as in the Linux desktop case
+	(see \ref b3xx_kernel_linux_install_desktop).
+3. Build and test UHD on Jetson.
+
+\subsubsection b3xx_kernel_linux_jetson_version Verify Jetson software version
+
+Confirm the target release on the Jetson host:
+
+    uname -r
+    cat /etc/nv_tegra_release
+
+\subsubsection b3xx_kernel_linux_jetson_dmabuf Enable DMA-BUF heap support
+
+NVIDIA kernel customization reference:
+<a href="https://docs.nvidia.com/jetson/archives/r36.4.4/DeveloperGuide/SD/Kernel/KernelCustomization.html">Jetson Linux Kernel Customization</a>
+
+The procedure below builds the kernel natively on the Jetson and installs it on
+that same device. A cross-compiled kernel must instead be installed through the
+Jetson Linux `Linux_for_Tegra` flashing workflow; do not run the `/boot` copy or
+`modules_install` commands below on the cross-build host.
+
+Build environment setup and source checkout:
+
+    sudo apt update
+    sudo apt install -y git build-essential bc flex bison libssl-dev zstd
+
+Download and extract the Jetson Linux release package and public sources for the
+target L4T release from the
+<a href="https://developer.nvidia.com/embedded/jetson-linux-archive">Jetson Linux archive</a>.
+The release must match the version reported by `cat /etc/nv_tegra_release`.
+In the commands below, `<install-path>` is a directory on the Jetson, for
+example `~/jetson_linux`.
+For L4T 36.4.4, use the Jetson Linux 36.4.4 package and its corresponding
+release tag. Then sync the kernel sources:
+
+    cd <install-path>/Linux_for_Tegra/source
+    ./source_sync.sh -k -t <release-tag>
+    export ARCH=arm64
+    export LOCALVERSION=-tegra
+    make -C kernel tegra_defconfig
+
+If Git source synchronization is unavailable, download `public_sources.tbz2`
+from the same archive and extract the matching source archives instead:
+
+    cd <install-path>/Linux_for_Tegra/source
+    tar xf kernel_src.tbz2
+    tar xf kernel_oot_modules_src.tbz2
+    tar xf nvidia_kernel_display_driver_source.tbz2
+    export ARCH=arm64
+    export LOCALVERSION=-tegra
+    make -C kernel tegra_defconfig
+
+Open kernel configuration:
+
+    make -C kernel menuconfig
+
+Enable these options as built-ins (`=y`):
+
+    CONFIG_DMA_SHARED_BUFFER=y
+    CONFIG_DMABUF_HEAPS=y
+    CONFIG_DMABUF_HEAPS_SYSTEM=y
+    CONFIG_SYNC_FILE=y
+
+Build and install:
+
+    make -C kernel -j$(nproc)
+    sudo make -C kernel modules_install
+    sudo cp /boot/Image /boot/Image.backup
+    sudo cp kernel/kernel-jammy-src/arch/arm64/boot/Image /boot/Image
+    sudo depmod -a
+    sudo update-initramfs -u
+    sudo reboot
+
+\subsubsection b3xx_kernel_linux_jetson_verify Verify DMA-BUF after reboot
+
+Check kernel config:
+
+    zgrep DMABUF /proc/config.gz
+
+Verify DMA heap node exists:
+
+    ls -l /dev/dma_heap/
+
+Expected: `system` entry under `/dev/dma_heap/`.
+
+Check kernel log:
+
+    dmesg | grep dma_heap
+
+Expected log includes registration of the system heap.
+
+Once DMA-BUF support is enabled and verified, use the same `nib310rio`, UHD, and
+FPGA image flow as the Linux desktop case.
+
+\subsubsection b3xx_kernel_linux_jetson_uhd Build and test UHD on Jetson
+
+Build and install UHD using the same process as Linux desktop builds
+(see \ref page_build_guide).
+
+After UHD and the driver are installed, validate operation:
+
+    uhd_find_devices --args type=b3xx
+    uhd_usrp_probe --args type=b3xx
+
 \section b3xx_kernel_windows Installing the Windows Kernel Driver
+
+On Windows, install the `b310k` MSI driver package `b310ki_win64.msi` from
+<a href="https://files.ettus.com/binaries/uhd/latest_release">Ettus UHD latest release binaries</a>.
+
+After installation, confirm the B310 appears in Device Manager and is enabled.
+If required, disable/enable the device from Device Manager to recover from
+enumeration failures after cabling or power changes.
 
 */
 // vim:ft=doxygen:
