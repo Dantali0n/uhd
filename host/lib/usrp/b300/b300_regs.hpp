@@ -130,6 +130,7 @@ static constexpr uint32_t FP_GPIO_SRC         = BAR0_CORE_REG(0x0034);
 static constexpr uint32_t GPS_CTRL_REG        = BAR0_CORE_REG(0x0038);
 static constexpr uint32_t LMK_SYNC_CTRL_REG   = BAR0_CORE_REG(0x0040);
 static constexpr uint32_t PPS_IN_CTRL_REG     = BAR0_CORE_REG(0x0044);
+static constexpr uint32_t TBOLT_CTRL_REG      = BAR0_CORE_REG(0x0048);
 
 
 // Motherboard I2C interfaces in BAR0

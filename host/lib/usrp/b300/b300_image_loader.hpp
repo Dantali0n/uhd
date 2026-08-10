@@ -18,13 +18,15 @@ class b300_image_loader_helper
 {
 public:
     b300_image_loader_helper(std::function<uint32_t(uint32_t)>&& readRegFunc,
-        std::function<void(uint32_t, uint32_t)>&& writeRegFunc);
+        std::function<void(uint32_t, uint32_t)>&& writeRegFunc,
+        bool isThunderbolt);
 
     std::vector<uint8_t> writeBinToFlash(const std::string& filename);
 
 private:
     std::function<uint32_t(uint32_t)> _read32;
     std::function<void(uint32_t, uint32_t)> _write32;
+    bool _isThunderbolt;
 
     // Internal helper method
     uint16_t _sendCommandGetData(uint8_t cmd, uint16_t data = 0);

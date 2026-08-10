@@ -77,8 +77,9 @@ static const uint16_t DATA_MASK  = 0xFFFF;
 
 b300_image_loader_helper::b300_image_loader_helper(
     std::function<uint32_t(uint32_t)>&& read,
-    std::function<void(uint32_t, uint32_t)>&& write)
-    : _read32(std::move(read)), _write32(std::move(write))
+    std::function<void(uint32_t, uint32_t)>&& write,
+    bool isThunderbolt)
+    : _read32(std::move(read)), _write32(std::move(write)), _isThunderbolt(isThunderbolt)
 {
     // Test FPGA-CPLD interface scratch pad
     std::vector<uint32_t> test_values = {0, 0xAABBCCDD};
@@ -415,8 +416,19 @@ std::vector<uint8_t> b300_image_loader_helper::writeBinToFlash(
             throw uhd::runtime_error("Write Reset Control Failed");
         }
         _sendCommandGetData(READ_RST_CTRL);
-        UHD_LOG_INFO(
-            "B300 IMAGE LOADER", "Image written successfully. Reboot for new image.");
+        if (_isThunderbolt) {
+            // Pulse the reset line to the Thunderbolt PD controller, allowing the FPGA to
+            // reset for Thunderbolt devices.
+            _write32(TBOLT_CTRL_REG, 0x1);
+            // Sleep for 5 seconds to give device time to back from reset.
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+            UHD_LOG_INFO("B300 IMAGE LOADER",
+                "Image written successfully. The device will reload the new image "
+                "automatically; wait for it to come back online.");
+        } else {
+            UHD_LOG_INFO(
+                "B300 IMAGE LOADER", "Image written successfully. Reboot for new image.");
+        }
     } else {
         throw uhd::runtime_error("Verify Failed!");
     }
@@ -736,9 +748,22 @@ static bool b300_image_loader(const image_loader::image_loader_args_t& image_loa
         auto pcie_mgr =
             std::make_shared<b300_pcie_manager>(devs[i]["resource"], dummy_tree, "");
 
+        auto tb_i2c = i2c_core_100_wb32::make(pcie_mgr, BAR0_TB_I2C_ADDR_BASE, true);
+        tb_i2c->set_clock_rate(B300_BUS_CLOCK_RATE, 100000);
+        auto eeprom = get_mb_eeprom(tb_i2c);
+        uint32_t product_id;
+        try {
+            product_id = static_cast<uint32_t>(std::stoul(eeprom["product"]));
+        } catch (const std::exception&) {
+            UHD_LOG_DEBUG("B300 IMAGE LOADER",
+                "Failed to parse product ID from EEPROM, treating as PCIe variant");
+            product_id = 0;
+        }
+
         b300_image_loader_helper image_loader_helper(
             [pcie_mgr](uint32_t addr) { return pcie_mgr->peek32(addr); },
-            [pcie_mgr](uint32_t addr, uint32_t value) { pcie_mgr->poke32(addr, value); });
+            [pcie_mgr](uint32_t addr, uint32_t value) { pcie_mgr->poke32(addr, value); },
+            product_id == B310_TB_PID);
         image_loader_helper.writeBinToFlash(fpga_path_to_program);
     }
 
