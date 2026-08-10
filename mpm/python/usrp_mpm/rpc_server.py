@@ -1004,11 +1004,6 @@ class MPMServer(mpm_server_pb2_grpc.MpmServerServiceServicer):
         The peripheral manager is torn down and re-initialized from scratch.
         """
         self.log.info("Resetting peripheral manager.")
-        # Keep a weak reference so we can verify the old manager is truly
-        # destroyed after we clear all references. A weak reference does not
-        # prevent garbage collection, so if it returns None afterwards we know
-        # __del__ was called and all handles were released.
-        _old_mgr_ref = weakref.ref(self.periph_manager)
         self.periph_manager.tear_down()
         # Clear bound-method closures AFTER tear_down() to ensure that if
         # tear_down() raises, the RPCs remain registered and the old manager
@@ -1021,12 +1016,6 @@ class MPMServer(mpm_server_pb2_grpc.MpmServerServiceServicer):
         self._mb_methods = []
         self._db_methods = []
         self.periph_manager = None
-        if _old_mgr_ref() is not None:
-            self.log.warning(
-                "Peripheral manager was NOT garbage collected after reset! "
-                "There is probably a lingering reference keeping it alive. "
-                "GPIO/SPI/pipe handles may have leaked."
-            )
         # Create a new manager and register RPC calls for it.
         self.periph_manager = self._mgr_generator()
         self._init_rpc_calls(self.periph_manager)
