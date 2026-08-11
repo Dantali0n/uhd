@@ -61,9 +61,16 @@ RUN if defined PIP_INDEX_URL ( \
     )
 
 COPY host/python/requirements.txt C:/Temp/requirements.txt
+COPY host/python/requirements_np2.txt C:/Temp/requirements_np2.txt
 RUN pip config list && \
     python -m pip install --upgrade pip && \
-    python -m pip install -r C:/Temp/requirements.txt
+    powershell -NoProfile -ExecutionPolicy Bypass -Command \
+    "if ([version]('%PYTHON_VERSION%') -ge [version]('3.13')) { \
+        pip install -r C:/Temp/requirements_np2.txt \
+    } else { \
+        pip install -r C:/Temp/requirements.txt \
+    }; \
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
 
 RUN setx VCPKG_INSTALL_DIR "c:\\vcpkg" /m
 RUN git clone https://github.com/microsoft/vcpkg %VCPKG_INSTALL_DIR% && \
