@@ -1146,7 +1146,7 @@ class X4XXBIST(bist.UsrpBIST):
         from uhd.utils import mpmtools
 
         # default MPM port
-        MPM_PORT = 49601
+        MPM_PORT = 49602
 
         mpm_c = mpmtools.MPMClient(mpmtools.InitMode.Claim, "localhost", MPM_PORT)
 

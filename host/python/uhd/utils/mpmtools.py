@@ -10,7 +10,8 @@ import queue
 import signal
 from enum import Enum
 
-MPM_RPC_PORT = 49601
+# RPC port. See usrp_mpm/mpmtypes.py.
+MPM_RPC_PORT = 49602
 MPM_DEFAULT_RPC_TIMEOUT_MS = (
     2000  # Mirrors MPMD_DEFAULT_RPC_TIMEOUT in uhdlib/usrp/common/mpmd_timeouts.hpp
 )

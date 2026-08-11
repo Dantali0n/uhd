@@ -53,7 +53,7 @@ def _camel_to_snake(name):
     return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
-DEFAULT_MPM_RPC_PORT = 49601
+DEFAULT_MPM_RPC_PORT = 49602
 if MPM_RPC_PORT is None:
     MPM_RPC_PORT = DEFAULT_MPM_RPC_PORT
 if MPM_RPC_PORT != DEFAULT_MPM_RPC_PORT:

@@ -10,7 +10,14 @@ MPM types
 import ctypes
 from multiprocessing import Array, RLock, Value
 
-MPM_RPC_PORT = 49601
+# gRPC-based MPM (rpc_version 2) listens on a different port (49602)
+# than the legacy mprpc port (49601). Keeping the discovery message/port
+# unchanged lets old UHD hosts (<4.10) still see the device, but their
+# mprpc connection attempt on 49601 gets refused (device reported as
+# "not reachable") instead of crashing from a protocol mismatch.
+# The new hosts (>=4.10) will see the gRPC based device and connect to it
+# on 49602, using the new gRPC protocol.
+MPM_RPC_PORT = 49602
 MPM_DISCOVERY_PORT = 49600
 MPM_DISCOVERY_MESSAGE = "MPM-DISC"
 

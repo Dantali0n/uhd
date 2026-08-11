@@ -146,7 +146,7 @@ void assert_compat_number_throw(const std::string& component,
 const std::string mpmd_impl::MPM_FINDALL_KEY        = "find_all";
 const size_t mpmd_impl::MPM_DISCOVERY_PORT          = 49600;
 const std::string mpmd_impl::MPM_DISCOVERY_PORT_KEY = "discovery_port";
-const size_t mpmd_impl::MPM_RPC_PORT                = 49601;
+const size_t mpmd_impl::MPM_RPC_PORT                = 49602;
 const std::string mpmd_impl::MPM_RPC_PORT_KEY       = "rpc_port";
 const std::string mpmd_impl::MPM_DISCOVERY_CMD      = "MPM-DISC";
 const std::string mpmd_impl::MPM_ECHO_CMD           = "MPM-ECHO";
