@@ -1529,29 +1529,39 @@ std::cout << usrp->set_master_clock_rate(250e6) << std::endl; // Prints 245.76e6
 std::cout << usrp->get_master_clock_rate_range().start() << std::endl; // Prints 245.76e6
 std::cout << usrp->get_master_clock_rate_range().stop() << std::endl; // Prints 245.76e6
 ~~~
-For details see \ref x4xx_too_convrate. 
+For details see \ref x4xx_too_convrate.
 
 \subsubsection x410_usage_mcrs USRP X410
 
 The USRP X410 has a few fixed MCR available for every image type:
 The 200 MHz images allow master clock rates of 245.76 MHz or 250 MHz. The 400
-MHz images allow master clock rates of 491.52 MHz or 500 MHz. Typically it is 
+MHz images allow master clock rates of 491.52 MHz or 500 MHz. Typically it is
 sufficient to open a UHD session without the master_clock_rate argument as UHD
 will pick a rate that fits the FPGA image loaded. If a non-valid MCR is chosen,
 the session will error out.
 
 \subsubsection x420_usage_mcrs USRP X420
 
-The USRP X420 has a default master clock rate of 1250 MHz for the xx_1000 images, 
-and 250 MHz for the X4_200 image. To accommodate a wider range of applications,
-the X420 also supports a few additional MCRs as listed in the table below.
+The USRP X420 has a default master clock rate of 1250 MHz for the `xx_1000`
+images, 500 MHz for the `xx_400` images and 250 MHz for the `x4_200` image. To
+accommodate a wider range of applications, the X420 also supports a few
+additional MCRs as listed in the table below.
 
-| Master Clock \n Rate (MCR) | Converter \n Rate (Fc) | RFDC Divider | Digital Bandwidth \n (0.8 * MCR) | Available in\n Default Bitfile |
-|:--:|:--:|:--:|:--:|:--:|
-245.76 MHz | 1966.08 MHz | 8 | 196.608 MHz | X4_200, xx_1000 |
-250 MHz | 2000 MHz | 8 | 200 MHz | X4_200, xx_1000 |
-491.52 MHz| 3932.16 MHz | 8 | 393.216 MHz | xx_1000 |
-1250 MHz (default)| 2500 MHz | 2 | 1000 MHz | xx_1000 |
+For applications requiring phase coherency, select an FPGA image together with
+an MCR/Fc combination whose `Phase coherent` entry is `yes`. The `X4_200` and
+`xx_400` images use a fixed fabric resampling factor of 3, enabling additional
+converter-rate and master-clock-rate combinations. The table lists the
+supported combinations and their phase-coherency status.
+
+| Master Clock \n Rate (MCR) | Converter \n Rate (Fc) | RFDC Divider | Digital Bandwidth \n (0.8 * MCR) | Available in\n Default Bitfile | Phase coherent |
+|:--:|:--:|:--:|:--:|:--:|--|
+|245.76 MHz | 1966.08 MHz | 8 | 196.608 MHz | xx_1000 | no |
+|250 MHz | 2000 MHz | 8 | 200 MHz | X4_200, xx_1000 | no |
+|491.52 MHz| 3932.16 MHz | 8 | 393.216 MHz | xx_1000 | no |
+|1250 MHz (default)| 2500 MHz | 2 | 1000 MHz | xx_1000 | yes |
+|245.76 MHz | 2949.12 MHz | 4 | 196.608 MHz | X4_200, xx_400 | yes |
+|250 MHz | 3000 MHz | 4 | 200 MHz | X4_200, xx_400 | yes |
+|491.52 MHz| 2949.12 MHz | 2 | 393.216 MHz | xx_400 | yes |
 
 \subsubsection x440_usage_mcrs USRP X440
 
