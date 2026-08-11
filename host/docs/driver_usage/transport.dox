@@ -270,10 +270,10 @@ device:
 \subsection transport_usb_installwin Install USB driver (Windows)
 
 A driver package must be installed to use a USB-based product with UHD
-software. To install the driver when building and installing UHD from 
+software. To install the driver when building and installing UHD from
 source perform the following steps for each desired USB device type:
 
--   Download the driver from the UHD wiki page: 
+-   Download the driver from the UHD wiki page:
     <a href="http://files.ettus.com/binaries/misc/erllc_uhd_winusb_driver.zip">erllc_uhd_winusb_driver.zip</a>.
 -   Unzip the file into a known location. We will refer to this as the `<directory>`.
 -   Open the device manager and plug in the USRP device. You will see an
@@ -312,6 +312,55 @@ behavior:
 -   `send_frame_size:` The size of a single send transfers in bytes
 -   `num_send_frames:` The number of simultaneous send transfers
 -   `send_buff_size:` The socket buffer size. Must be a multiple of pages
+
+\section transport_b3xx_pcie PCIe Transport (B3xx Kernel Driver)
+
+The B3xx PCIe transport is used with the B310 and relies on a platform-specific
+kernel driver stack:
+
+- Linux: `nib310rio`
+- Windows: `b310k`
+
+Driver installation and validation instructions are documented here:
+\ref page_b3xx_kernel.
+
+For B3xx PCIe device discovery and resource naming details, see also
+\ref page_usrp_b3xx.
+
+When using this transport, applications should specify `type=b3xx`. If multiple
+devices are present or explicit selection is needed, use the `resource`
+device argument (for example, `resource=nib310rio0` on Linux).
+
+The enclosed Thunderbolt variant of the B310 uses this same transport path.
+Although the external interface is Thunderbolt, UHD still uses the B3xx PCIe
+transport because Thunderbolt carries tunneled PCIe transactions.
+
+The B3xx PCIe transport uses a fixed DMA channel allocation model in UHD.
+One DMA channel is reserved for control, command, and asynchronous messages,
+and four DMA channels are available for streaming data (2xRX + 2xTX).
+This enables full-duplex operation with up to two simultaneous RX and two
+simultaneous TX data paths.
+
+By default, data links use 8192-byte frames with 8192 frames per direction
+(64 MiB buffer per direction). Control and asynchronous message links use
+256-byte frames with 64 frames.
+
+Buffer sizing for this transport is constrained by page alignment rules.
+In particular, `recv_buff_size` and `send_buff_size` must be page-size
+multiples, and frame-count/frame-size combinations must resolve to page-size
+multiples as well.
+
+\subsection transport_b3xx_pcie_params Transport parameters
+
+The following parameters can be used to alter the transport's default
+behavior:
+
+-   `recv_frame_size:` The size of a single receive transfers in bytes
+-   `num_recv_frames:` The number of simultaneous receive transfers
+-   `recv_buff_size:` The kernel buffer size in bytes
+-   `send_frame_size:` The size of a single send transfers in bytes
+-   `num_send_frames:` The number of simultaneous send transfers
+-   `send_buff_size:` The kernel buffer size in bytes
 
 */
 // vim:ft=doxygen:
