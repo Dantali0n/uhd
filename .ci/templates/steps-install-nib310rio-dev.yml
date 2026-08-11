@@ -1,0 +1,24 @@
+steps:
+- download: nib310rio_kernel_packages
+  artifact: nib310rio-deb-packages
+  displayName: Download nib310rio-dev deb
+  condition: and(succeeded(), contains(variables['buildOSName'], 'ubuntu'))
+
+- download: nib310rio_kernel_packages
+  artifact: nib310rio-rpm-packages
+  displayName: Download nib310rio-dev rpm
+  condition: and(succeeded(), contains(variables['buildOSName'], 'fedora'))
+
+- script: |
+    set -euo pipefail
+    if command -v dpkg >/dev/null 2>&1; then
+      pkg=$(find "$(Pipeline.Workspace)/nib310rio_kernel_packages/nib310rio-deb-packages" \
+        -type f -name 'nib310rio-dev_*_all.deb' | sort -V | tail -n 1)
+      sudo dpkg -i "$pkg"
+    else
+      # Search only RPMS/ to avoid picking up the source RPM from SRPMS/
+      pkg=$(find "$(Pipeline.Workspace)/nib310rio_kernel_packages/nib310rio-rpm-packages/RPMS" \
+        -type f -name 'nib310rio-dev-*.rpm' | sort -V | tail -n 1)
+      sudo rpm -i "$pkg"
+    fi
+  displayName: Install nib310rio-dev

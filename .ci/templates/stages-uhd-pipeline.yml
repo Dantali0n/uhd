@@ -253,7 +253,7 @@ parameters:
       attempt_timeout: 360
       max_attempts: 2
 # Next parameters are used to control conditional execution of embedded system image build stages.
-# They are not parameters that can be set by the user, 
+# They are not parameters that can be set by the user,
 # but rather they are computed based on the output of the analyze_changeset stage.
 - name: embedded_stage_condition_e3xx
   type: string
@@ -327,6 +327,9 @@ resources:
   - pipeline: uhd_build_docker_container
     source: 'uhddev Build Docker Containers'
     branch: master
+  - pipeline: nib310rio_kernel_packages
+    source: 'usrp-pcie-driver pipeline'
+    branch: main
   - pipeline: usrp-kas-pipeline
     source: 'usrp-kas'
     branch: scarthgap

@@ -87,6 +87,9 @@ jobs:
 
   - download: uhd_build_docker_container
 
+  - ${{ if not(or(contains(parameters.toolset, 'msbuild'), eq(parameters.toolset, 'make_homebrew_macos'))) }}:
+    - template: steps-install-nib310rio-dev.yml
+
   - ${{ if eq(parameters.toolset, 'make') }}:
     - template: steps-build-uhd-make.yml
       parameters:
