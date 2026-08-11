@@ -253,7 +253,11 @@ jobs:
       cd $(Common.TestResultsDirectory)/devtest
       export PATH=$(Build.BinariesDirectory)/uhddev/build/utils:$(Build.BinariesDirectory)/uhddev/build/examples:$PATH
       export LD_LIBRARY_PATH=$(Build.BinariesDirectory)/uhddev/build/lib:$LD_LIBRARY_PATH
-      export UHD_IMAGES_DIR=$(Build.BinariesDirectory)/uhddev/build-installed/share/uhd/images/:$HOME/adrv9032_images
+      export UHD_IMAGES_DIR=$(Build.BinariesDirectory)/uhddev/build/fpga_images
+      uhd_image_loader --args type=$(devType),serial=$(devSerial)
+      sleep 10
+      export UHD_IMAGES_DIR=$HOME/adrv9032_images
+      uhd_usrp_probe --args type=$(devType),serial=$(devSerial)
       python3 ${{ parameters.uhdSrcDir }}/uhddev/host/tests/devtest/run_testsuite.py \
           --src-dir ${{ parameters.uhdSrcDir }}/uhddev/host/tests/devtest \
           --devtest-pattern $(devtestPattern) --args type=$(devType),serial=$(devSerial) \
