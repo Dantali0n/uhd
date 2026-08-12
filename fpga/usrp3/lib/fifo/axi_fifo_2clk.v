@@ -88,18 +88,6 @@ module axi_fifo_2clk #(
   wire             o_ext_tvalid;
   wire             o_ext_tready;
 
-  // Derive constants based on device. The XPM-based FIFO is not yet supported
-  // on some devices. Deriving a local parameter to use for later checks.
-  `ifdef X300
-    localparam USE_LEGACY_FIFO = 1;
-  `elsif X310
-    localparam USE_LEGACY_FIFO = 1;
-  `elsif B310
-    localparam USE_LEGACY_FIFO = 1;
-  `else
-    localparam USE_LEGACY_FIFO = 0;
-  `endif
-
   // First triple of values is for Intel's MAX10 FPGAs. The FIFO generator for
   // those devices supports embedded memory only (SRL_THRESHOLD = 0).
   // The later triple has been optimized for Xilinx 7Series FPGAs. They also
@@ -123,10 +111,15 @@ module axi_fifo_2clk #(
 
   generate
     // XPM-based FIFO for Xilinx FPGAs, except for the certain devices.
-    if (DEVICE != "MAX10" && !USE_LEGACY_FIFO) begin: xpm_fifo_section
+    if (DEVICE != "MAX10") begin: xpm_fifo_section
       localparam XPM_SIZE = (SIZE < SRL_THRESHOLD) ? SRL_THRESHOLD : SIZE;
+      localparam TYPE = (SIZE < RAM_THRESHOLD) ? "distributed" : "block";
 
-      fifo_xpm_2clk #(.WIDTH(WIDTH), .DEPTH(1 << XPM_SIZE)) impl_xpm_i (
+      fifo_xpm_2clk #(
+        .WIDTH(WIDTH),
+        .DEPTH(2**XPM_SIZE),
+        .TYPE(TYPE)
+      ) impl_xpm_i (
         .rst          (i_arst),
         .wr_clk       (i_aclk),
         .din          (i_pipe_tdata),
@@ -139,6 +132,9 @@ module axi_fifo_2clk #(
         .empty        (fifo_empty),
         .rd_data_count()
       );
+
+      assign {o_pipe_tdata, o_pipe_tvalid} = {o_ext_tdata, o_ext_tvalid};
+      assign o_ext_tready = o_pipe_tready;
     end else begin: legacy_fifo_section
       wire [INT_WIDTH-1:0] wr_data, rd_data;
       wire [NUM_FIFOS-1:0] full, empty;
@@ -180,38 +176,28 @@ module axi_fifo_2clk #(
           );
         end
       end
-    end
-  endgenerate
 
-  //----------------------------------------------
-  // Extension FIFO (for large sizes)
-  //----------------------------------------------
-
-  generate
-    if (SIZE > RAM_THRESHOLD) begin
-      wire [WIDTH-1:0] ext_pipe_tdata;
-      wire             ext_pipe_tvalid;
-      wire             ext_pipe_tready;
-
-      // Add a register slice between BRAM cascades
-      axi_fifo_flop2 #(.WIDTH(WIDTH)) ext_fifo_pipe_i (
-        .clk(o_aclk), .reset(o_arst), .clear(1'b0),
-        .i_tdata(o_ext_tdata), .i_tvalid(o_ext_tvalid), .i_tready(o_ext_tready),
-        .o_tdata(ext_pipe_tdata), .o_tvalid(ext_pipe_tvalid), .o_tready(ext_pipe_tready),
-        .space(), .occupied()
-      );
-
-      // Bolt on an extension FIFO if the requested depth is larger than the BRAM
-      // 2clk FIFO primitive (IP)
-      axi_fifo_bram #(.WIDTH(WIDTH), .SIZE(SIZE)) ext_fifo_i (
-        .clk(o_aclk), .reset(o_arst), .clear(1'b0),
-        .i_tdata(ext_pipe_tdata), .i_tvalid(ext_pipe_tvalid), .i_tready(ext_pipe_tready),
-        .o_tdata(o_pipe_tdata), .o_tvalid(o_pipe_tvalid), .o_tready(o_pipe_tready),
-        .space(), .occupied()
-      );
-    end else begin
-      assign {o_pipe_tdata, o_pipe_tvalid} = {o_ext_tdata, o_ext_tvalid};
-      assign o_ext_tready = o_pipe_tready;
+      //----------------------------------------------
+      // Extension FIFO (for large sizes)
+      //----------------------------------------------
+      if (SIZE > RAM_THRESHOLD) begin
+        // Bolt on an extension FIFO if the requested depth is larger than the BRAM
+        // 2clk FIFO primitive (IP)
+        axi_fifo_large #(
+          .WIDTH(WIDTH),
+          .DEPTH(2**SIZE - 2**RAM_THRESHOLD),
+          .DEVICE(DEVICE),
+          .MAX_NUM_URAM_BLOCKS(0)
+        ) ext_fifo_i (
+          .clk(o_aclk), .reset(o_arst), .clear(1'b0),
+          .i_tdata(o_ext_tdata), .i_tvalid(o_ext_tvalid), .i_tready(o_ext_tready),
+          .o_tdata(o_pipe_tdata), .o_tvalid(o_pipe_tvalid), .o_tready(o_pipe_tready),
+          .space(), .occupied()
+        );
+      end else begin
+        assign {o_pipe_tdata, o_pipe_tvalid} = {o_ext_tdata, o_ext_tvalid};
+        assign o_ext_tready = o_pipe_tready;
+      end
     end
   endgenerate
 

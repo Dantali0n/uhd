@@ -9,18 +9,20 @@
 //
 //   Asynchronous dual-clock FIFO implemented with Xilinx XPM FIFO
 //   primitives. The FIFO uses first-word fall-through read mode and
-//   provides the interface used by fifo_short_2clk.
+//   provides the dual-clock FIFO interface used by the FPGA projects.
 //
 // Parameters:
 //
 //   WIDTH: Width of the input and output data buses.
 //   DEPTH: Number of entries in the FIFO. Must be a power of two between
 //          16 and 4194304.
+//   TYPE: Type of memory to use for the FIFO. Can be "auto", "block", or "distributed".
 //
 
 module fifo_xpm_2clk #(
   int WIDTH = 72,
-  int DEPTH = 32
+  int DEPTH = 32,
+  string TYPE = "auto"
 )(
   input  logic             rst,
   input  logic             wr_clk,
@@ -46,12 +48,20 @@ module fifo_xpm_2clk #(
 
   localparam int COUNT_WIDTH = $clog2(DEPTH) + 1;
 
+  logic xpm_full;
+  logic xpm_empty;
+  logic wr_rst_busy;
+  logic rd_rst_busy;
+
+  assign full  = xpm_full  | wr_rst_busy;
+  assign empty = xpm_empty | rd_rst_busy;
+
   xpm_fifo_async #(
     .CASCADE_HEIGHT      (0),
     .CDC_SYNC_STAGES     (3),
     .DOUT_RESET_VALUE    ("0"),
     .ECC_MODE            ("no_ecc"),
-    .FIFO_MEMORY_TYPE    ("auto"),
+    .FIFO_MEMORY_TYPE    (TYPE),
     .FIFO_READ_LATENCY   (0),
     .FIFO_WRITE_DEPTH    (DEPTH),
     .FULL_RESET_VALUE    (1),
@@ -72,18 +82,18 @@ module fifo_xpm_2clk #(
     .data_valid    (),
     .dbiterr       (),
     .dout          (dout),
-    .empty         (empty),
-    .full          (full),
+    .empty         (xpm_empty),
+    .full          (xpm_full),
     .overflow      (),
     .prog_empty    (),
     .prog_full     (),
     .rd_data_count (rd_data_count),
-    .rd_rst_busy   (),
+    .rd_rst_busy   (rd_rst_busy),
     .sbiterr       (),
     .underflow     (),
     .wr_ack        (),
     .wr_data_count (wr_data_count),
-    .wr_rst_busy   (),
+    .wr_rst_busy   (wr_rst_busy),
     .din           (din),
     .injectdbiterr (1'b0),
     .injectsbiterr (1'b0),

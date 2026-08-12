@@ -169,6 +169,9 @@ proc ::vivado_utils::synthesize_design {args} {
     variable g_verilog_defs
     variable g_include_dirs
 
+    # automatically detect xpm libraries and include the respective libraries
+    auto_detect_xpm
+
     set vdef_args ""
     foreach vdef $g_verilog_defs {
         set vdef_args [concat $vdef_args "-verilog_define $vdef"]
