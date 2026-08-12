@@ -17,6 +17,9 @@ ARG VCPKG_MANIFEST_FILE=vcpkg-vs2026.json
 ARG PIP_INDEX_HOST=""
 ARG PIP_INDEX_URL=""
 ENV VCPKG_DISABLE_METRICS=1
+# Optional argument for vcpkg binary cache directory
+ARG VCPKG_BINARY_CACHE_DIR="C:\vcpkg-cache"
+ENV VCPKG_BINARY_SOURCES=clear;files,${VCPKG_BINARY_CACHE_DIR},readwrite
 
 # Enable long file paths (>260 characters)
 RUN reg add HKLM\SYSTEM\CurrentControlSet\Control\FileSystem /v LongPathsEnabled /t REG_DWORD /d 1 /f
@@ -68,6 +71,13 @@ RUN git clone https://github.com/microsoft/vcpkg %VCPKG_INSTALL_DIR% && \
     bootstrap-vcpkg.bat
 # Add custom UHD vcpkg triplet
 COPY host/cmake/vcpkg/* c:/vcpkg/triplets/
+# Define triplet to be used by this container
+RUN setx VCPKG_TARGET_TRIPLET "uhd-x64-windows-static-md" /m
+RUN echo set(VCPKG_BUILD_TYPE release)>>"%VCPKG_INSTALL_DIR%\triplets\%VCPKG_TARGET_TRIPLET%.cmake"
+RUN type "%VCPKG_INSTALL_DIR%\triplets\%VCPKG_TARGET_TRIPLET%.cmake"
+# Copy vcpkg cache from mapped folder to 
+RUN echo Current path %cd%
+COPY .cache/vcpkg ${VCPKG_BINARY_CACHE_DIR}
 
 RUN powershell -NoProfile -ExecutionPolicy Bypass -Command \
     "New-Item -ItemType Directory -Path 'c:\uhd-vcpkg' -Force | Out-Null"
