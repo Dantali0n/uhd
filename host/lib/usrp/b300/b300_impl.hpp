@@ -14,7 +14,7 @@
 namespace uhd { namespace usrp { namespace b300 {
 
 static const uint8_t B300_FPGA_COMPAT_NUM_MAJOR = 2;
-static const uint8_t B300_FPGA_COMPAT_NUM_MINOR = 0;
+static const uint8_t B300_FPGA_COMPAT_NUM_MINOR = 1;
 static const uint16_t B300_REVISION_COMPAT      = 3;
 static const uint16_t B300_REVISION_MIN         = 1;
 // If the module has a blank eeprom, we will log a warning and fallback to revision C. We
