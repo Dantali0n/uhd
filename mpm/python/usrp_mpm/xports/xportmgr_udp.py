@@ -239,14 +239,27 @@ class XportMgrUDP:
         internal_ifaces = list(
             filter(
                 lambda int_iface: self.iface_config[int_iface]["type"] == "internal",
-                self._chdr_ifaces))
+                self._chdr_ifaces,
+            )
+        )
         return internal_ifaces
 
     def _setup_forwarding_nftables(self, iface):
-        """ Configures forwarding of CHDR packets coming from the RJ45 interface to
+        """Configures forwarding of CHDR packets coming from the RJ45 interface to
         the internal network interface using nftables."""
+        with open("/tmp/nft_tables.conf", "w") as f:
+            f.write("list tables")
+        try:
+            proc = subprocess.run([self._nft, "-f", "/tmp/nft_tables.conf"], capture_output=True)
+        except subprocess.SubprocessError as ex:
+            self.log.warning(f"Unable to configure CHDR forwarding: {ex}")
+        existing_tables = proc.stdout.decode().splitlines()
+        create_table_ip_nat = "create table ip nat" if "table ip nat" not in existing_tables else ""
+        create_table_ip_filter = (
+            "create table ip filter" if "table ip filter" not in existing_tables else ""
+        )
         forwarding_conf_template = """#!/usr/sbin/nft -f
-create table ip nat
+{create_table_ip_nat}
 flush table ip nat
 table ip nat {{
         chain prerouting {{
@@ -258,7 +271,7 @@ table ip nat {{
                 oifname "{iface}" ip saddr {int_ip_addr} udp sport {chdr_port} notrack masquerade
         }}
 }}
-create table ip filter
+{create_table_ip_filter}
 flush table ip filter
 table ip filter {{
         chain forward {{
@@ -269,23 +282,26 @@ table ip filter {{
 """
         internal_ifaces = self._get_internal_ifaces()
         if len(internal_ifaces) == 0:
-            self.log.warning(
-                f'No internal interface to forward CHDR packets to from {iface}.')
+            self.log.warning(f"No internal interface to forward CHDR packets to from {iface}.")
             return
         int_iface = internal_ifaces[0]
         int_ip_addr = self.get_fpga_internal_ip_address(int_iface)
 
         with open("/tmp/nft.conf", "w") as f:
-            f.write(forwarding_conf_template.format(
-                chdr_port = self.chdr_port,
-                iface = iface,
-                int_iface = int_iface,
-                int_ip_addr = int_ip_addr
-            ))
+            f.write(
+                forwarding_conf_template.format(
+                    chdr_port=self.chdr_port,
+                    iface=iface,
+                    int_iface=int_iface,
+                    int_ip_addr=int_ip_addr,
+                    create_table_ip_nat=create_table_ip_nat,
+                    create_table_ip_filter=create_table_ip_filter,
+                )
+            )
         try:
             subprocess.run([self._nft, "-f", "/tmp/nft.conf"])
         except subprocess.SubprocessError as ex:
-            self.log.warning(f'Unable to configure CHDR forwarding: {ex}')
+            self.log.warning(f"Unable to configure CHDR forwarding: {ex}")
 
     def _setup_forwarding_iptables(self, iface):
         """
