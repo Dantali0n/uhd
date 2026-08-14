@@ -56,7 +56,7 @@ module aurora_axis_mac #(
 
    wire phy_s_axis_tready;    // Internal only. The PHY has no backpressure signal.
 
-   // Stay idle if the PHY is not up or if it experiences a fatal error 
+   // Stay idle if the PHY is not up or if it experiences a fatal error
    wire clear_sysclk, clear_phyclk;
    synchronizer #(.INITIAL_VAL(1'b1)) clear_sync_phyclk_i (
       .clk(phy_clk), .rst(1'b0 /* no reset */), .in((~channel_up) | hard_err | clear), .out(clear_phyclk));
@@ -85,7 +85,7 @@ module aurora_axis_mac #(
          overruns_reg <= overruns_reg + 32'd1;
 
    wire [7:0] dummy0;
-   fifo_short_2clk status_counters_2clk_i (
+   fifo_xpm_2clk #(.WIDTH(72), .DEPTH(32), .TYPE("distributed")) status_counters_2clk_i (
       .rst(phy_rst),
       .wr_clk(phy_clk), .din({8'h00, soft_errors_reg, overruns_reg}), .wr_en(1'b1), .full(), .wr_data_count(),
       .rd_clk(sys_clk), .dout({dummy0, soft_errors, overruns}), .rd_en(1'b1), .empty(), .rd_data_count()
@@ -139,7 +139,7 @@ module aurora_axis_mac #(
    wire           checksum_err;
 
    wire [63:0]    phy_s_axis_tdata_endian, phy_m_axis_tdata_endian;
-   
+
    generate if (PHY_ENDIANNESS == "BIG") begin
       assign phy_s_axis_tdata_endian = {
          phy_s_axis_tdata[7:0], phy_s_axis_tdata[15:8], phy_s_axis_tdata[23:16], phy_s_axis_tdata[31:24],
@@ -178,7 +178,7 @@ module aurora_axis_mac #(
 
    assign loopback_tdata   = i_pip_tdata;
    assign loopback_tvalid  = i_pip_tvalid & bist_loopback_en_reg;
-   
+
    axi_strip_preamble #(.WIDTH(64), .MAX_PKT_SIZE(MAX_PACKET_SIZE)) axi_strip_preamble_i (
       .clk(sys_clk), .reset(sys_rst), .clear(clear_sysclk),
       .i_tdata(i_pip_tdata), .i_tvalid(i_pip_tvalid & ~bist_checker_en_reg & ~bist_loopback_en_reg), .i_tready(i_pip_tready),
@@ -255,7 +255,7 @@ module aurora_axis_mac #(
    // -------------------------------------------------
    localparam LFSR_LEN  = 32;
    localparam LFSR_SEED = {LFSR_LEN{1'b1}};
-   
+
    function [LFSR_LEN-1:0] compute_lfsr_next;
       input [LFSR_LEN-1:0] current;
       // Maximal length polynomial: x^32 + x^22 + x^2 + x^1 + 1

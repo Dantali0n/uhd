@@ -253,7 +253,11 @@ module cat_io_lvds_dual_mode #(
   wire rx_fifo_empty;
   reg  rx_fifo_rd_en;
 
-  fifo_short_2clk fifo_short_2clk_rx (
+  fifo_xpm_2clk #(
+    .WIDTH (48),
+    .DEPTH (32),
+    .TYPE  ("distributed")
+  ) fifo_xpm_2clk_rx (
     .rst           (radio_rst),         // Asynchronous reset input
     .wr_clk        (radio_clk_2x),
     .rd_clk        (radio_clk),
@@ -314,7 +318,11 @@ module cat_io_lvds_dual_mode #(
   wire tx_fifo_empty;
   reg  tx_fifo_rd_en;
 
-  fifo_short_2clk fifo_short_2clk_tx (
+  fifo_xpm_2clk #(
+    .WIDTH (48),
+    .DEPTH (32),
+    .TYPE  ("distributed")
+  ) fifo_xpm_2clk_tx (
     .rst           (radio_rst),         // Asynchronous reset input
     .wr_clk        (radio_clk),
     .rd_clk        (radio_clk_2x),

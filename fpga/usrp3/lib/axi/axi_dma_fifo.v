@@ -11,7 +11,7 @@
 // 2) Never cross a 4KByte address boundary within a single transaction, this is an AXI4 rule.
 // 3) 2^SIZE must be greater than 4KB so that the 4KByte page protection also deals with FIFO wrap corner case.
 //
-module axi_dma_fifo 
+module axi_dma_fifo
 #(
    parameter SIMULATION       = 0,             // Shorten flush counter for simulation
    parameter DEFAULT_BASE     = 30'h00000000,
@@ -23,7 +23,7 @@ module axi_dma_fifo
    parameter MAX_PKT_LEN      = 12              // Log2 of maximum packet length
 ) (
    input bus_clk,
-   input bus_reset, 
+   input bus_reset,
    input dram_clk,
    input dram_reset,
    //
@@ -32,7 +32,7 @@ module axi_dma_fifo
    output [0 : 0] m_axi_awid,     // Write address ID. This signal is the identification tag for the write address signals
    output [31 : 0] m_axi_awaddr,  // Write address. The write address gives the address of the first transfer in a write burst
    output [7 : 0] m_axi_awlen,    // Burst length. The burst length gives the exact number of transfers in a burst.
-   output [2 : 0] m_axi_awsize,   // Burst size. This signal indicates the size of each transfer in the burst. 
+   output [2 : 0] m_axi_awsize,   // Burst size. This signal indicates the size of each transfer in the burst.
    output [1 : 0] m_axi_awburst,  // Burst type. The burst type and the size information, determine how the address is calculated
    output [0 : 0] m_axi_awlock,   // Lock type. Provides additional information about the atomic characteristics of the transfer.
    output [3 : 0] m_axi_awcache,  // Memory type. This signal indicates how transactions are required to progress
@@ -49,12 +49,12 @@ module axi_dma_fifo
    output [7 : 0] m_axi_wstrb,    // Write strobes. This signal indicates which byte lanes hold valid data.
    output m_axi_wlast,            // Write last. This signal indicates the last transfer in a write burst
    output [0 : 0] m_axi_wuser,    // User signal. Optional User-defined signal in the write data channel.
-   output m_axi_wvalid,           // Write valid. This signal indicates that valid write data and strobes are available. 
+   output m_axi_wvalid,           // Write valid. This signal indicates that valid write data and strobes are available.
    input m_axi_wready,            // Write ready. This signal indicates that the slave can accept the write data.
    //
    // AXI Write response channel signals
    //
-   input [0 : 0] m_axi_bid,       // Response ID tag. This signal is the ID tag of the write response. 
+   input [0 : 0] m_axi_bid,       // Response ID tag. This signal is the ID tag of the write response.
    input [1 : 0] m_axi_bresp,     // Write response. This signal indicates the status of the write transaction.
    input [0 : 0] m_axi_buser,     // User signal. Optional User-defined signal in the write response channel.
    input m_axi_bvalid,            // Write response valid. This signal indicates that the channel is signaling a valid response
@@ -68,7 +68,7 @@ module axi_dma_fifo
    output [2 : 0] m_axi_arsize,   // Burst size. This signal indicates the size of each transfer in the burst.
    output [1 : 0] m_axi_arburst,  // Burst type. The burst type and the size information determine how the address for each transfer
    output [0 : 0] m_axi_arlock,   // Lock type. This signal provides additional information about the atomic characteristics
-   output [3 : 0] m_axi_arcache,  // Memory type. This signal indicates how transactions are required to progress 
+   output [3 : 0] m_axi_arcache,  // Memory type. This signal indicates how transactions are required to progress
    output [2 : 0] m_axi_arprot,   // Protection type. This signal indicates the privilege and security level of the transaction
    output [3 : 0] m_axi_arqos,    // Quality of Service, QoS. QoS identifier sent for each read transaction.
    output [3 : 0] m_axi_arregion, // Region identifier. Permits a single physical interface on a slave to be re-used
@@ -83,7 +83,7 @@ module axi_dma_fifo
    input [1 : 0] m_axi_rresp,     // Read response. This signal indicates the status of the read transfer
    input m_axi_rlast,             // Read last. This signal indicates the last transfer in a read burst.
    input [0 : 0] m_axi_ruser,     // User signal. Optional User-defined signal in the read data channel.
-   input m_axi_rvalid,            // Read valid. This signal indicates that the channel is signaling the required read data. 
+   input m_axi_rvalid,            // Read valid. This signal indicates that the channel is signaling the required read data.
    output m_axi_rready,           // Read ready. This signal indicates that the master can accept the read data and response
    //
    // CHDR friendly AXI stream input
@@ -212,14 +212,14 @@ module axi_dma_fifo
 
    wire [(72-AWIDTH-29-1):0]  set_sync_discard0;
    wire [(72-(2*AWIDTH)-1):0] set_sync_discard1;
-   fifo_short_2clk set_sync_fifo0(
+   fifo_xpm_2clk #(.WIDTH(72), .DEPTH(32), .TYPE("distributed")) set_sync_fifo0(
       .rst(bus_reset),
       .wr_clk(bus_clk), .din({{(72-AWIDTH-29){1'b0}}, timeout_bclk, supress_enable_bclk, supress_threshold_bclk, fifo_base_addr_bclk}),
       .wr_en(1'b1), .full(), .wr_data_count(),
       .rd_clk(dram_clk), .dout({set_sync_discard0, set_timeout, set_suppress_en, set_supress_threshold, set_fifo_base_addr}),
       .rd_en(1'b1), .empty(), .rd_data_count()
    );
-   fifo_short_2clk set_sync_fifo1(
+   fifo_xpm_2clk #(.WIDTH(72), .DEPTH(32), .TYPE("distributed")) set_sync_fifo1(
       .rst(bus_reset),
       .wr_clk(bus_clk), .din({{(72-(2*AWIDTH)){1'b0}}, ~fifo_addr_mask_bclk, fifo_addr_mask_bclk}),
       .wr_en(1'b1), .full(), .wr_data_count(),
@@ -233,7 +233,7 @@ module axi_dma_fifo
    localparam [2:0] INPUT_IDLE = 0;
    localparam [2:0] INPUT1 = 1;
    localparam [2:0] INPUT2 = 2;
-   localparam [2:0] INPUT3 = 3;   
+   localparam [2:0] INPUT3 = 3;
    localparam [2:0] INPUT4 = 4;
    localparam [2:0] INPUT5 = 5;
    localparam [2:0] INPUT6 = 6;
@@ -255,7 +255,7 @@ module axi_dma_fifo
    localparam [2:0] OUTPUT_IDLE = 0;
    localparam [2:0] OUTPUT1 = 1;
    localparam [2:0] OUTPUT2 = 2;
-   localparam [2:0] OUTPUT3 = 3;   
+   localparam [2:0] OUTPUT3 = 3;
    localparam [2:0] OUTPUT4 = 4;
    localparam [2:0] OUTPUT5 = 5;
    localparam [2:0] OUTPUT6 = 6;
@@ -267,17 +267,17 @@ module axi_dma_fifo
    reg [AWIDTH-1:0]  read_addr;
    reg         read_ctrl_valid;
    wire        read_ctrl_ready;
-   reg [7:0]   read_count = 8'd0; 
+   reg [7:0]   read_count = 8'd0;
    reg [8:0]   read_count_plus_one = 9'd1;  // Maintain a +1 version to break critical timing paths
    reg         update_read;
-   
+
    // Track main FIFO active size.
    reg [AWIDTH-3:0] space, occupied, occupied_minus_one;  // Maintain a -1 version to break critical timing paths
    reg [AWIDTH-3:0] input_page_boundry, output_page_boundry;  // Cache in a register to break critical timing paths
 
    // Assign FIFO status bits
    wire [71:0] status_out_bclk;
-   fifo_short_2clk status_fifo_2clk(
+   fifo_xpm_2clk #(.WIDTH(72), .DEPTH(32), .TYPE("distributed")) status_fifo_2clk(
       .rst(dram_reset),
       .wr_clk(dram_clk), .din({{(72-(AWIDTH-2)){1'b0}}, occupied}),
       .wr_en(1'b1), .full(), .wr_data_count(),
@@ -323,10 +323,10 @@ module axi_dma_fifo
 
    wire       bist_running, bist_done;
    wire [1:0] bist_error;
-   
+
    axi_chdr_test_pattern #(
-     .DELAY_MODE(EXT_BIST ? "DYNAMIC" : "STATIC"), 
-     .SID_MODE(EXT_BIST ? "DYNAMIC" : "STATIC"), 
+     .DELAY_MODE(EXT_BIST ? "DYNAMIC" : "STATIC"),
+     .SID_MODE(EXT_BIST ? "DYNAMIC" : "STATIC"),
      .BW_COUNTER(EXT_BIST ? 1 : 0),
      .SR_BASE(SR_BASE + 4)
    ) axi_chdr_test_pattern_i (
@@ -381,7 +381,7 @@ module axi_dma_fifo
 
    wire [DWIDTH-1:0] i_tdata_i0;
    wire             i_tvalid_i0, i_tready_i0, i_tlast_i0;
- 
+
    wire [DWIDTH-1:0] i_tdata_i1;
    wire             i_tvalid_i1, i_tready_i1, i_tlast_i1;
 
@@ -399,15 +399,15 @@ module axi_dma_fifo
 
 
    ///////////////////////////////////////////////////////////////////////////////
-   
+
    wire         write_in, read_in, empty_in, full_in;
    assign       i_tready_fifo = ~full_in;
    assign       write_in = i_tvalid_fifo & i_tready_fifo;
    assign       i_tvalid_i0 = ~empty_in;
    assign       read_in = i_tvalid_i0 & i_tready_i0;
    wire [6:0]   discard_i0;
-   
-   fifo_short_2clk fifo_short_2clk_i0 (
+
+   fifo_xpm_2clk #(.WIDTH(72), .DEPTH(32), .TYPE("distributed")) fifo_short_2clk_i0 (
       .rst(bus_reset),
       .wr_clk(bus_clk),
       .din({7'h0,i_tlast_fifo,i_tdata_fifo}), // input [71 : 0] din
@@ -424,16 +424,16 @@ module axi_dma_fifo
 
    axi_fifo_flop2 #(.WIDTH(DWIDTH+1)) input_pipe_i0
      (
-      .clk(dram_clk), 
-      .reset(dram_reset), 
+      .clk(dram_clk),
+      .reset(dram_reset),
       .clear(clear),
       //
-      .i_tdata({i_tlast_i0, i_tdata_i0}), 
-      .i_tvalid(i_tvalid_i0), 
+      .i_tdata({i_tlast_i0, i_tdata_i0}),
+      .i_tvalid(i_tvalid_i0),
       .i_tready(i_tready_i0),
       //
-      .o_tdata({i_tlast_i1, i_tdata_i1}), 
-      .o_tvalid(i_tvalid_i1), 
+      .o_tdata({i_tlast_i1, i_tdata_i1}),
+      .o_tvalid(i_tvalid_i1),
       .o_tready(i_tready_i1)
    );
 
@@ -453,33 +453,33 @@ module axi_dma_fifo
    );
 
    axi_fifo_flop2 #(.WIDTH(DWIDTH)) input_pipe_i1 (
-      .clk(dram_clk), 
-      .reset(dram_reset), 
+      .clk(dram_clk),
+      .reset(dram_reset),
       .clear(clear),
       //
-      .i_tdata(i_tdata_i2), 
-      .i_tvalid(i_tvalid_i2), 
+      .i_tdata(i_tdata_i2),
+      .i_tvalid(i_tvalid_i2),
       .i_tready(i_tready_i2),
       //
-      .o_tdata(i_tdata_i3), 
-      .o_tvalid(i_tvalid_i3), 
+      .o_tdata(i_tdata_i3),
+      .o_tvalid(i_tvalid_i3),
       .o_tready(i_tready_i3)
    );
 
    axi_fifo #(.WIDTH(DWIDTH),.SIZE(10)) fifo_i1 (
-      .clk(dram_clk), 
-      .reset(dram_reset), 
+      .clk(dram_clk),
+      .reset(dram_reset),
       .clear(clear),
       //
-      .i_tdata(i_tdata_i3), 
-      .i_tvalid(i_tvalid_i3), 
+      .i_tdata(i_tdata_i3),
+      .i_tvalid(i_tvalid_i3),
       .i_tready(i_tready_i3),
       //
-      .o_tdata(i_tdata_input), 
-      .o_tvalid(i_tvalid_input), 
+      .o_tdata(i_tdata_input),
+      .o_tvalid(i_tvalid_input),
       .o_tready(i_tready_input),
       //
-      .space(space_input), 
+      .space(space_input),
       .occupied(occupied_input)
    );
 
@@ -488,12 +488,12 @@ module axi_dma_fifo
    // passing upstream of the DRAM FIFO.
    // In this situation supress read requests to the DRAM FIFO so that more bandwidth is available to writes.
    //
-   always @(posedge dram_clk) 
+   always @(posedge dram_clk)
       begin
          space_input_reg <= space_input;
          if ((space_input_reg < set_supress_threshold[15:0])  && set_suppress_en)
             supress_reads <= 1'b1;
-         else 
+         else
             supress_reads <= 1'b0;
       end
 
@@ -506,16 +506,16 @@ module axi_dma_fifo
 
    wire [DWIDTH-1:0] o_tdata_i0;
    wire             o_tvalid_i0, o_tready_i0;
-   
+
    wire [DWIDTH-1:0] o_tdata_i1;
    wire             o_tvalid_i1, o_tready_i1;
-   
+
    wire [DWIDTH-1:0] o_tdata_i2;
    wire             o_tvalid_i2, o_tready_i2;
-   
+
    wire [DWIDTH-1:0] o_tdata_i3;
    wire             o_tvalid_i3, o_tready_i3;
-   
+
    wire [DWIDTH-1:0] o_tdata_i4;
    wire             o_tvalid_i4, o_tready_i4, o_tlast_i4;
 
@@ -525,69 +525,69 @@ module axi_dma_fifo
    wire             checksum_error;
 
    axi_fifo #(.WIDTH(DWIDTH),.SIZE(10)) fifo_i2 (
-      .clk(dram_clk), 
-      .reset(dram_reset), 
+      .clk(dram_clk),
+      .reset(dram_reset),
       .clear(clear),
       //
-      .i_tdata(o_tdata_output), 
-      .i_tvalid(o_tvalid_output), 
+      .i_tdata(o_tdata_output),
+      .i_tvalid(o_tvalid_output),
       .i_tready(o_tready_output),
       //
-      .o_tdata(o_tdata_i0), 
-      .o_tvalid(o_tvalid_i0), 
+      .o_tdata(o_tdata_i0),
+      .o_tvalid(o_tvalid_i0),
       .o_tready(o_tready_i0),
       //
-      .space(space_output), 
+      .space(space_output),
       .occupied(occupied_output)
    );
 
    // Place FLops straight after SRAM read access for timing.
    axi_fifo_flop2 #(.WIDTH(DWIDTH)) output_pipe_i0
      (
-      .clk(dram_clk), 
-      .reset(dram_reset), 
+      .clk(dram_clk),
+      .reset(dram_reset),
       .clear(clear),
       //
-      .i_tdata(o_tdata_i0), 
-      .i_tvalid(o_tvalid_i0), 
+      .i_tdata(o_tdata_i0),
+      .i_tvalid(o_tvalid_i0),
       .i_tready(o_tready_i0),
       //
-      .o_tdata(o_tdata_i1), 
-      .o_tvalid(o_tvalid_i1), 
+      .o_tdata(o_tdata_i1),
+      .o_tvalid(o_tvalid_i1),
       .o_tready(o_tready_i1 && ~supress_reads)
    );
 
    // Read suppression logic
    // The CL part of this exists between these
-   // axi_flops 
+   // axi_flops
    axi_fifo_flop2 #(.WIDTH(DWIDTH)) output_pipe_i1
      (
-      .clk(dram_clk), 
-      .reset(dram_reset), 
+      .clk(dram_clk),
+      .reset(dram_reset),
       .clear(clear),
       //
-      .i_tdata(o_tdata_i1), 
-      .i_tvalid(o_tvalid_i1 && ~supress_reads), 
+      .i_tdata(o_tdata_i1),
+      .i_tvalid(o_tvalid_i1 && ~supress_reads),
       .i_tready(o_tready_i1),
       //
-      .o_tdata(o_tdata_i2), 
-      .o_tvalid(o_tvalid_i2), 
+      .o_tdata(o_tdata_i2),
+      .o_tvalid(o_tvalid_i2),
       .o_tready(o_tready_i2)
    );
 
    // Pipeline flop before tlast extraction logic
    axi_fifo_flop2 #(.WIDTH(DWIDTH)) output_pipe_i2
      (
-      .clk(dram_clk), 
-      .reset(dram_reset), 
+      .clk(dram_clk),
+      .reset(dram_reset),
       .clear(clear),
       //
-      .i_tdata(o_tdata_i2), 
-      .i_tvalid(o_tvalid_i2), 
+      .i_tdata(o_tdata_i2),
+      .i_tvalid(o_tvalid_i2),
       .i_tready(o_tready_i2),
       //
-      .o_tdata(o_tdata_i3), 
-      .o_tvalid(o_tvalid_i3), 
+      .o_tdata(o_tdata_i3),
+      .o_tvalid(o_tvalid_i3),
       .o_tready(o_tready_i3)
    );
 
@@ -611,16 +611,16 @@ module axi_dma_fifo
    // Pipeline flop after tlast extraction logic
    axi_fifo_flop2 #(.WIDTH(DWIDTH+1)) output_pipe_i3
      (
-      .clk(dram_clk), 
-      .reset(dram_reset), 
+      .clk(dram_clk),
+      .reset(dram_reset),
       .clear(clear),
       //
-      .i_tdata({o_tlast_i4,o_tdata_i4}), 
-      .i_tvalid(o_tvalid_i4), 
+      .i_tdata({o_tlast_i4,o_tdata_i4}),
+      .i_tvalid(o_tvalid_i4),
       .i_tready(o_tready_i4),
       //
-      .o_tdata({o_tlast_i5,o_tdata_i5}), 
-      .o_tvalid(o_tvalid_i5), 
+      .o_tdata({o_tlast_i5,o_tdata_i5}),
+      .o_tvalid(o_tvalid_i5),
       .o_tready(o_tready_i5)
    );
 
@@ -630,8 +630,8 @@ module axi_dma_fifo
    assign       o_tvalid_fifo = ~empty_out;
    assign       read_out = o_tvalid_fifo & o_tready_fifo;
    wire [6:0]   discard_i1;
-   
-   fifo_short_2clk fifo_short_2clk_i1 (
+
+   fifo_xpm_2clk #(.WIDTH(72), .DEPTH(32), .TYPE("distributed")) fifo_short_2clk_i1 (
       .rst(dram_reset),
       .wr_clk(dram_clk),
       .din({7'h0,o_tlast_i5,o_tdata_i5}), // input [71 : 0] din
@@ -683,7 +683,7 @@ module axi_dma_fifo
          //
          // INPUT_IDLE.
          // To start an input transfer to DRAM need:
-         // 1) Space in the DRAM FIFO 
+         // 1) Space in the DRAM FIFO
          // and either
          // 2) 256 entrys in the input FIFO
          // or
@@ -698,13 +698,13 @@ module axi_dma_fifo
                   input_timeout_reset <= 1'b1;
                   // Calculate number of entries remaining until next 4KB page boundry is crossed minus 1.
                   // Note, units of calculation are 64bit wide words. Address is always 64bit alligned.
-                  input_page_boundry <= {write_addr[AWIDTH-1:12],9'h1ff} - write_addr[AWIDTH-1:3];   
+                  input_page_boundry <= {write_addr[AWIDTH-1:12],9'h1ff} - write_addr[AWIDTH-1:3];
                end else if (input_timeout_triggered) begin // input FIFO timeout waiting for new data.
                   input_state <= INPUT2;
                   input_timeout_reset <= 1'b1;
                   // Calculate number of entries remaining until next 4KB page boundry is crossed minus 1.
                   // Note, units of calculation are 64bit wide words. Address is always 64bit alligned.
-                  input_page_boundry <= {write_addr[AWIDTH-1:12],9'h1ff} - write_addr[AWIDTH-1:3];   
+                  input_page_boundry <= {write_addr[AWIDTH-1:12],9'h1ff} - write_addr[AWIDTH-1:3];
                end else begin
                   input_timeout_reset <= 1'b0;
                   input_state <= INPUT_IDLE;
@@ -771,14 +771,14 @@ module axi_dma_fifo
                input_state <= INPUT5; // Move on
             else
                input_state <= INPUT4; // Wait for deassert
-         end   
+         end
          //
          // INPUT5.
          // Transaction has been accepted by AXI4 DMA engine. Now we wait for the re-assertion
          // of write_ctrl_ready which signals that the AXI4 DMA engine has receieved a response
          // for the whole write transaction and we assume that this means it is commited to DRAM.
          // We are now free to update write_addr pointer and go back to idle state.
-         // 
+         //
          INPUT5: begin
             write_ctrl_valid <= 1'b0;
             if (write_ctrl_ready) begin
@@ -798,7 +798,7 @@ module axi_dma_fifo
             update_write <= 1'b0;
          end
 
-         default: 
+         default:
             input_state <= INPUT_IDLE;
       endcase // case(input_state)
 
@@ -840,7 +840,7 @@ module axi_dma_fifo
          //
          // OUTPUT_IDLE.
          // To start an output tranfer from DRAM
-         // 1) Space in the small output FIFO 
+         // 1) Space in the small output FIFO
          // and either
          // 2) 256 entrys in the DRAM FIFO
          // or
@@ -928,14 +928,14 @@ module axi_dma_fifo
                output_state <= OUTPUT5; // Move on
             else
                output_state <= OUTPUT4; // Wait for deassert
-         end   
+         end
          //
          // OUTPUT5.
          // Transaction has been accepted by AXI4 DMA engine. Now we wait for the re-assertion
          // of read_ctrl_ready which signals that the AXI4 DMA engine has receieved a last signal and good response
          // for the whole read transaction.
          // We are now free to update read_addr pointer and go back to idle state.
-         // 
+         //
          OUTPUT5: begin
             read_ctrl_valid <= 1'b0;
             if (read_ctrl_ready) begin
@@ -955,7 +955,7 @@ module axi_dma_fifo
             output_state <= OUTPUT_IDLE;
          end
 
-         default: 
+         default:
             output_state <= OUTPUT_IDLE;
        endcase // case(output_state)
 
