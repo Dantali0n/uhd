@@ -10,10 +10,15 @@
 #include <uhd/utils/math.hpp>
 #include <uhdlib/usrp/common/adrv9032_ctrl.hpp>
 #include <uhdlib/usrp/common/adrv9032_manager.hpp>
+#include <array>
 #include <functional>
 #include <mutex>
 
 namespace uhd { namespace usrp {
+
+namespace {
+constexpr size_t ADRV9032_NUM_CHANNELS = 2;
+} // namespace
 
 class adrv9032_manager_impl : public adrv9032_manager
 {
@@ -27,8 +32,6 @@ public:
         std::string tracking_cal_args)
         : _adrv9032_ctrl()
         , _mutex(std::make_shared<std::mutex>())
-        , _tx_nco_freq(0.0)
-        , _rx_nco_freq(0.0)
         , _channel_enable_fn(channel_enable_fn)
         , _sleep_fn(sleep_fn)
     {
@@ -43,6 +46,7 @@ public:
         const bool timed_tuning) override
     {
         std::lock_guard<std::mutex> lock(*_mutex);
+        UHD_ASSERT_THROW(chan < ADRV9032_NUM_CHANNELS);
         double coerced_freq = adrv9032_freq_range.clip(freq, true);
         // Calculation is done for Tx NCO, but then needs to be negated for Rx since it is
         // a shift. So when the requested frequency is higher than the LO max, Tx needs a
@@ -62,11 +66,11 @@ public:
             if (dir == TX_DIRECTION) {
                 check_adrv9032_error(
                     _adrv9032_ctrl->set_tx_nco_frequency(chan, nco_freq, timed_tuning));
-                _tx_nco_freq = nco_freq;
+                _tx_nco_freq[chan] = nco_freq;
             } else {
                 check_adrv9032_error(
                     _adrv9032_ctrl->set_rx_nco_frequency(chan, -nco_freq, timed_tuning));
-                _rx_nco_freq = -nco_freq;
+                _rx_nco_freq[chan] = -nco_freq;
             }
         } else if (coerced_freq < adrv9032_lo_freq_range.start()) {
             check_adrv9032_error(_adrv9032_ctrl->set_rf_lo_frequency(
@@ -78,39 +82,42 @@ public:
             if (dir == TX_DIRECTION) {
                 check_adrv9032_error(
                     _adrv9032_ctrl->set_tx_nco_frequency(chan, nco_freq, timed_tuning));
-                _tx_nco_freq = nco_freq;
+                _tx_nco_freq[chan] = nco_freq;
             } else {
                 check_adrv9032_error(
                     _adrv9032_ctrl->set_rx_nco_frequency(chan, -nco_freq, timed_tuning));
-                _rx_nco_freq = -nco_freq;
+                _rx_nco_freq[chan] = -nco_freq;
             }
         } else {
             check_adrv9032_error(_adrv9032_ctrl->set_rf_lo_frequency(
                 dir, chan, coerced_freq, timed_tuning));
-            if (dir == TX_DIRECTION
-                && !uhd::math::frequencies_are_equal(_tx_nco_freq, 0.0)) {
-                if (timed_tuning) {
-                    _sleep_fn(ADRV9032_CMD_SLEEP_TIME);
+            if (dir == TX_DIRECTION) {
+                if (!uhd::math::frequencies_are_equal(_tx_nco_freq[chan], 0.0)) {
+                    if (timed_tuning) {
+                        _sleep_fn(ADRV9032_CMD_SLEEP_TIME);
+                    }
+                    check_adrv9032_error(
+                        _adrv9032_ctrl->set_tx_nco_frequency(chan, 0.0, timed_tuning));
+                    _tx_nco_freq[chan] = 0.0;
                 }
-                check_adrv9032_error(
-                    _adrv9032_ctrl->set_tx_nco_frequency(chan, 0.0, timed_tuning));
-                _tx_nco_freq = 0.0;
-            } else if (!uhd::math::frequencies_are_equal(_rx_nco_freq, 0.0)) {
-                if (timed_tuning) {
-                    _sleep_fn(ADRV9032_CMD_SLEEP_TIME);
+            } else {
+                if (!uhd::math::frequencies_are_equal(_rx_nco_freq[chan], 0.0)) {
+                    if (timed_tuning) {
+                        _sleep_fn(ADRV9032_CMD_SLEEP_TIME);
+                    }
+                    check_adrv9032_error(
+                        _adrv9032_ctrl->set_rx_nco_frequency(chan, 0.0, timed_tuning));
+                    _rx_nco_freq[chan] = 0.0;
                 }
-                check_adrv9032_error(
-                    _adrv9032_ctrl->set_rx_nco_frequency(chan, 0.0, timed_tuning));
-                _rx_nco_freq = 0.0;
             }
         }
         if (timed_tuning) {
             // If we are doing fast tuning, take our own coercion rather than querying
             // back from the chip.
             if (dir == TX_DIRECTION) {
-                return coerced_freq + _tx_nco_freq;
+                return coerced_freq + _tx_nco_freq[chan];
             } else {
-                return coerced_freq + _rx_nco_freq;
+                return coerced_freq + _rx_nco_freq[chan];
             }
         } else {
             // If we are not doing timed tuning, we can query back from the chip.
@@ -119,12 +126,12 @@ public:
                 _adrv9032_ctrl->get_rf_lo_frequency(dir, chan, ret_freq));
             if (dir == TX_DIRECTION) {
                 check_adrv9032_error(
-                    _adrv9032_ctrl->get_tx_nco_frequency(chan, _tx_nco_freq));
-                ret_freq += _tx_nco_freq;
+                    _adrv9032_ctrl->get_tx_nco_frequency(chan, _tx_nco_freq[chan]));
+                ret_freq += _tx_nco_freq[chan];
             } else {
                 check_adrv9032_error(
-                    _adrv9032_ctrl->get_rx_nco_frequency(chan, _rx_nco_freq));
-                ret_freq -= _rx_nco_freq;
+                    _adrv9032_ctrl->get_rx_nco_frequency(chan, _rx_nco_freq[chan]));
+                ret_freq -= _rx_nco_freq[chan];
             }
             return ret_freq;
         }
@@ -133,9 +140,10 @@ public:
     double get_frequency(uhd::direction_t dir, const size_t chan) const override
     {
         std::lock_guard<std::mutex> lock(*_mutex);
+        UHD_ASSERT_THROW(chan < ADRV9032_NUM_CHANNELS);
         double freq = 0.0;
         check_adrv9032_error(_adrv9032_ctrl->get_rf_lo_frequency(dir, chan, freq));
-        freq += (dir == TX_DIRECTION) ? _tx_nco_freq : -_rx_nco_freq;
+        freq += (dir == TX_DIRECTION) ? _tx_nco_freq[chan] : -_rx_nco_freq[chan];
         return freq;
     }
 
@@ -146,6 +154,7 @@ public:
         bool timed_tuning) override
     {
         std::lock_guard<std::mutex> lock(*_mutex);
+        UHD_ASSERT_THROW(chan < ADRV9032_NUM_CHANNELS);
         double ret_freq = 0.0;
         if (name == "RFLO") {
             freq = adrv9032_lo_freq_range.clip(freq, true);
@@ -165,22 +174,22 @@ public:
                 check_adrv9032_error(
                     _adrv9032_ctrl->set_tx_nco_frequency(chan, freq, timed_tuning));
                 if (timed_tuning) {
-                    _tx_nco_freq = freq;
+                    _tx_nco_freq[chan] = freq;
                 } else {
                     check_adrv9032_error(
-                        _adrv9032_ctrl->get_tx_nco_frequency(chan, _tx_nco_freq));
+                        _adrv9032_ctrl->get_tx_nco_frequency(chan, _tx_nco_freq[chan]));
                 }
-                return _tx_nco_freq;
+                return _tx_nco_freq[chan];
             } else {
                 check_adrv9032_error(
                     _adrv9032_ctrl->set_rx_nco_frequency(chan, freq, timed_tuning));
                 if (timed_tuning) {
-                    _rx_nco_freq = freq;
+                    _rx_nco_freq[chan] = freq;
                 } else {
                     check_adrv9032_error(
-                        _adrv9032_ctrl->get_rx_nco_frequency(chan, _rx_nco_freq));
+                        _adrv9032_ctrl->get_rx_nco_frequency(chan, _rx_nco_freq[chan]));
                 }
-                return _rx_nco_freq;
+                return _rx_nco_freq[chan];
             }
         } else {
             throw uhd::value_error("Invalid LO name: " + name);
@@ -415,8 +424,8 @@ public:
 private:
     adrv9032_ctrl::sptr _adrv9032_ctrl;
     std::shared_ptr<std::mutex> _mutex;
-    double _tx_nco_freq;
-    double _rx_nco_freq;
+    std::array<double, ADRV9032_NUM_CHANNELS> _tx_nco_freq{};
+    std::array<double, ADRV9032_NUM_CHANNELS> _rx_nco_freq{};
     std::function<void(size_t, uint32_t)> _channel_enable_fn;
     std::function<void(const uhd::time_spec_t&)> _sleep_fn;
 
