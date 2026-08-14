@@ -748,7 +748,7 @@ public:
     {
         adi_adrv903x_ErrAction_e ret_code = ADI_ADRV903X_ERR_ACT_NONE;
         adi_adrv903x_RxGainCtrlModeCfg_t rxGainCtrlModeCfg;
-        rxGainCtrlModeCfg.rxChannelMask = chan == 0 ? ADI_ADRV903X_RX0 : ADI_ADRV903X_RX4;
+        rxGainCtrlModeCfg.rxChannelMask = chan == 0 ? ADI_ADRV903X_RX4 : ADI_ADRV903X_RX0;
         rxGainCtrlModeCfg.gainCtrlMode  = enable ? ADI_ADRV903X_AGC : ADI_ADRV903X_MGC;
         CHECK_ADRV903x_FUNC(
             adi_adrv903x_RxGainCtrlModeSet(&_adrv903x_device, &rxGainCtrlModeCfg, 1));
@@ -759,7 +759,7 @@ public:
     adi_adrv903x_ErrAction_e get_rx_agc(const size_t chan, bool& enable) override
     {
         adi_adrv903x_ErrAction_e ret_code = ADI_ADRV903X_ERR_ACT_NONE;
-        adi_adrv903x_RxChannels rx_chan = chan == 0 ? ADI_ADRV903X_RX0 : ADI_ADRV903X_RX4;
+        adi_adrv903x_RxChannels rx_chan = chan == 0 ? ADI_ADRV903X_RX4 : ADI_ADRV903X_RX0;
         adi_adrv903x_RxGainCtrlMode_e agc_mode;
         CHECK_ADRV903x_FUNC(
             adi_adrv903x_RxGainCtrlModeGet(&_adrv903x_device, rx_chan, &agc_mode));
