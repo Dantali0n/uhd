@@ -233,7 +233,7 @@ public:
             }
             check_adrv9032_error(_adrv9032_ctrl->set_chan_pll_source(dir, chan, src));
         } else if (name == "NCO") {
-            if (src != "NC0") {
+            if (src != "NCO") {
                 throw uhd::value_error("Invalid NCO source: " + src);
                 // There isn't actually any NCO source to set, but don't throw the Invalid
                 // Name error since "NCO" is a valid name.
