@@ -9,8 +9,6 @@ include $(IP_DIR)/axi_intercon_2x64_128_bd/Makefile.inc
 include $(IP_DIR)/bootram/Makefile.inc
 include $(IP_DIR)/bus_clk_gen/Makefile.inc
 include $(IP_DIR)/ddr3_32bit/Makefile.inc
-include $(IP_DIR)/fifo_4k_2clk/Makefile.inc
-include $(IP_DIR)/fifo_short_2clk/Makefile.inc
 include $(IP_DIR)/one_gig_eth_pcs_pma/Makefile.inc
 include $(IP_DIR)/pcie_clk_gen/Makefile.inc
 include $(IP_DIR)/radio_clk_gen/Makefile.inc
@@ -22,8 +20,6 @@ $(IP_AXI64_4K_2CLK_FIFO_SRCS) \
 $(IP_AXI64_8K_2CLK_FIFO_SRCS) \
 $(IP_BOOTRAM_SRCS) \
 $(IP_BUS_CLK_GEN_SRCS) \
-$(IP_FIFO_4K_2CLK_SRCS) \
-$(IP_FIFO_SHORT_2CLK_SRCS) \
 $(IP_PCIE_CLK_GEN_SRCS) \
 $(IP_RADIO_CLK_GEN_SRCS)
 # $(IP_AXI4_BRAM_SRCS) \
@@ -57,8 +53,6 @@ $(IP_AXI64_4K_2CLK_FIFO_OUTS) \
 $(IP_AXI64_8K_2CLK_FIFO_OUTS) \
 $(IP_BOOTRAM_OUTS) \
 $(IP_BUS_CLK_GEN_OUTS) \
-$(IP_FIFO_4K_2CLK_OUTS) \
-$(IP_FIFO_SHORT_2CLK_OUTS) \
 $(IP_ONE_GIG_ETH_PCS_PMA_OUTS) \
 $(IP_PCIE_CLK_GEN_OUTS) \
 $(IP_RADIO_CLK_GEN_OUTS) \

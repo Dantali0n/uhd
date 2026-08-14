@@ -54,7 +54,6 @@ $(IP_AXI64_8K_2CLK_FIFO_SRCS) \
 $(IP_AXI64_4K_2CLK_FIFO_SRCS) \
 $(PACKET_PROC_SRCS) \
 )
-#$(IP_FIFO_SHORT_2CLK_SRCS) \
 
 
 #-------------------------------------------------

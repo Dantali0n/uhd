@@ -17,8 +17,6 @@ include $(IP_DIR)/axi_inter_4x128_512_bd/Makefile.inc
 include $(IP_DIR)/axi_inter_1x512_512_bd/Makefile.inc
 include $(IP_DIR)/axi_inter_2x512_512_bd/Makefile.inc
 include $(IP_DIR)/axi64_4k_2clk_fifo/Makefile.inc
-include $(IP_DIR)/fifo_short_2clk/Makefile.inc
-include $(IP_DIR)/fifo_4k_2clk/Makefile.inc
 include $(IP_DIR)/eth_100g_bd/Makefile.inc
 include $(IP_DIR)/axi_eth_dma_bd/Makefile.inc
 include $(IP_DIR)/hb47_1to2/Makefile.inc
@@ -93,8 +91,6 @@ endif
 IP_XCI_SRCS = \
 $(IP_XGE_PCS_PMA_SRCS) \
 $(IP_AXI64_4K_2CLK_FIFO_SRCS) \
-$(IP_FIFO_SHORT_2CLK_SRCS) \
-$(IP_FIFO_4K_2CLK_SRCS) \
 $(IP_HB47_1TO2_SRCS) \
 $(IP_HB47_2TO1_SRCS) \
 
@@ -150,8 +146,6 @@ endif
 IP_SYNTH_OUTPUTS = \
 $(IP_XGE_PCS_PMA_OUTS) \
 $(IP_AXI64_4K_2CLK_FIFO_OUTS) \
-$(IP_FIFO_SHORT_2CLK_OUTS) \
-$(IP_FIFO_4K_2CLK_OUTS) \
 $(IP_HB47_1TO2_OUTS) \
 $(IP_HB47_2TO1_OUTS) \
 
@@ -172,8 +166,6 @@ endif
 
 IP_HDL_SIM_SRCS = \
 $(IP_AXI64_4K_2CLK_FIFO_HDL_SIM_SRCS) \
-$(IP_FIFO_4K_2CLK_HDL_SIM_SRCS) \
-$(IP_FIFO_SHORT_2CLK_HDL_SIM_SRCS) \
 $(IP_AXI_INTERCONNECT_ETH_HDL_SIM_SRCS) \
 $(IP_AXI_INTERCONNECT_DMA_HDL_SIM_SRCS) \
 $(IP_100G_HDL_SIM_SRCS) \

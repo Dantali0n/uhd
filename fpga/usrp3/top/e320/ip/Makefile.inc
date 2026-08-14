@@ -7,8 +7,6 @@ include $(IP_DIR)/axi64_4k_2clk_fifo/Makefile.inc
 include $(IP_DIR)/axi64_8k_2clk_fifo/Makefile.inc
 include $(IP_DIR)/axi_intercon_4x64_256_bd/Makefile.inc
 include $(IP_DIR)/ddr3_32bit/Makefile.inc
-include $(IP_DIR)/fifo_4k_2clk/Makefile.inc
-include $(IP_DIR)/fifo_short_2clk/Makefile.inc
 include $(IP_DIR)/one_gig_eth_pcs_pma/Makefile.inc
 #include $(IP_DIR)/misc_clock_gen/Makefile.inc
 include $(IP_DIR)/ten_gig_eth_pcs_pma/Makefile.inc
@@ -26,13 +24,11 @@ $(IP_E320_PS_BD_SRCS)
 
 IP_XCI_SRCS = \
 $(IP_TEN_GIG_ETH_PCS_PMA_SRCS) \
-$(IP_FIFO_SHORT_2CLK_SRCS) \
 $(IP_AXI64_4K_2CLK_FIFO_SRCS) \
 $(IP_ONE_GIG_ETH_PCS_PMA_SRCS) \
 $(IP_AURORA_64B66B_PCS_PMA_SRCS) \
 $(IP_AXI64_8K_2CLK_FIFO_SRCS) \
 $(IP_AXI_ETH_DMA_SRCS) \
-$(IP_FIFO_4K_2CLK_SRCS) \
 #$(IP_AXI4_BRAM_SRCS) \
 #$(IP_AXI3_TO_AXI4LITE_PROTOCOL_CONVERTER_SRCS) \
 #$(IP_AXI4_TO_AXI3_PROTOCOL_CONVERTER_32_SRCS) \
@@ -49,13 +45,11 @@ $(ONE_GIGE_PHY_SRCS)
 
 IP_SYNTH_OUTPUTS = \
 $(IP_TEN_GIG_ETH_PCS_PMA_OUTS) \
-$(IP_FIFO_SHORT_2CLK_OUTS) \
 $(IP_AXI64_4K_2CLK_FIFO_OUTS) \
 $(IP_ONE_GIG_ETH_PCS_PMA_OUTS) \
 $(IP_AXI64_8K_2CLK_FIFO_OUTS) \
 $(IP_AURORA_64B66B_PCS_PMA_OUTS) \
 $(IP_AXI_ETH_DMA_OUTS) \
-$(IP_FIFO_4K_2CLK_OUTS) \
 #$(IP_AXI4_BRAM_OUTS) \
 #$(IP_AXI3_TO_AXI4LITE_PROTOCOL_CONVERTER_OUTS) \
 #$(IP_AXI_INTERCONNECT_OUTS) \

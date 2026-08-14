@@ -42,13 +42,11 @@ IP_DIR = ../../ip
 # Include makefiles and sources for all IP components
 # *after* defining the IP_DIR
 include $(IP_DIR)/aurora_64b66b_pcs_pma/Makefile.inc
-include $(IP_DIR)/fifo_short_2clk/Makefile.inc
 include $(IP_DIR)/axi64_4k_2clk_fifo/Makefile.inc
 
 DESIGN_SRCS += $(abspath \
 $(IP_AURORA_64B66B_PCS_PMA_SRCS) \
 $(IP_AXI64_4K_2CLK_FIFO_SRCS) \
-$(IP_FIFO_SHORT_2CLK_SRCS) \
 $(AURORA_PHY_SRCS) \
 $(AURORA_PHY_1_SRCS) \
 )
@@ -70,6 +68,8 @@ $(abspath aurora_loopback_tb.sv) \
 $(SIM_GENERAL_SRCS) \
 $(SIM_CONTROL_SRCS) \
 $(SIM_AXI_SRCS)
+
+MODELSIM_LIBS += xpm
 
 #-------------------------------------------------
 # Bottom-of-Makefile

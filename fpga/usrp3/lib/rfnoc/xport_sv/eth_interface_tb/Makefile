@@ -31,7 +31,6 @@ include $(BASE_DIR)/../lib/rfnoc/crossbar/Makefile.srcs
 include $(BASE_DIR)/../lib/rfnoc/core/Makefile.srcs
 
 IP_DIR = $(BASE_DIR)/x300/ip
-include $(BASE_DIR)/x300/ip/fifo_short_2clk/Makefile.inc
 
 DESIGN_SRCS += $(abspath \
 eth_ifc_synth_test.sv \
@@ -46,7 +45,6 @@ $(RFNOC_XPORT_SRCS) \
 $(RFNOC_XPORT_SV_SRCS) \
 $(RFNOC_XBAR_SRCS) \
 $(RFNOC_CORE_SRCS) \
-$(IP_FIFO_SHORT_2CLK_SRCS) \
 )
 
 #-------------------------------------------------
@@ -60,7 +58,6 @@ TB_TOP_MODULE ?= eth_ifc_all_tb
 SIM_TOP = $(TB_TOP_MODULE)
 
 SIM_SRCS = \
-$(abspath $(IP_BUILD_DIR)/fifo_short_2clk/sim/fifo_short_2clk.v) \
 $(abspath eth_ifc_tb.sv) \
 $(abspath $(TB_TOP_MODULE).sv) \
 $(VIVADO_PATH)/data/verilog/src/glbl.v \

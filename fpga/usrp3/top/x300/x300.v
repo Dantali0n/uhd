@@ -441,7 +441,7 @@ module x300
    reg [31:0] ref_freq_refclk = 10_000_000;   // Default to 10 MHz reference
 
    // Synchronize ref_freq to ref_clk
-   fifo_short_2clk ref_freq_sync
+   fifo_xpm_2clk #(.WIDTH(72), .DEPTH(32), .TYPE("distributed")) ref_freq_sync
    (
      .rst(bus_rst),
      .wr_clk(bus_clk),

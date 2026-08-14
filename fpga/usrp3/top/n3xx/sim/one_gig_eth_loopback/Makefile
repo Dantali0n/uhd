@@ -40,7 +40,6 @@ IP_DIR = ../../ip
 # Include makefiles and sources for all IP components
 # *after* defining the IP_DIR
 include $(IP_DIR)/one_gig_eth_pcs_pma/Makefile.inc
-#include $(IP_DIR)/fifo_short_2clk/Makefile.inc
 include $(IP_DIR)/axi64_8k_2clk_fifo/Makefile.inc
 
 DESIGN_SRCS += $(abspath \
@@ -48,7 +47,6 @@ $(IP_ONE_GIG_ETH_PCS_PMA_SRCS) \
 $(IP_ONE_GIGE_PHY_XCI_SRCS) \
 $(ONE_GIGE_PHY_SRCS) \
 $(IP_AXI64_8K_2CLK_FIFO_SRCS) \
-$(IP_FIFO_SHORT_2CLK_SRCS) \
 )
 
 #-------------------------------------------------

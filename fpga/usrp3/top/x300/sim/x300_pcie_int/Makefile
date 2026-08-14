@@ -31,22 +31,7 @@ $(IOPORT2_SRCS) \
 ../../x300_pcie_int.v \
 )
 
-#-------------------------------------------------
-# IP Specific
-#-------------------------------------------------
-# If simulation contains IP, define the IP_DIR and point
-# it to the base level IP directory
-IP_DIR = ../../ip
-
-# Include makefiles and sources for all IP components
-# *after* defining the IP_DIR
-include $(IP_DIR)/fifo_short_2clk/Makefile.inc
-include $(IP_DIR)/fifo_4k_2clk/Makefile.inc
-
-DESIGN_SRCS += $(abspath \
-$(IP_FIFO_4K_2CLK_SRCS) \
-$(IP_FIFO_SHORT_2CLK_SRCS) \
-)
+MODELSIM_LIBS += xpm
 
 #-------------------------------------------------
 # Testbench Specific
