@@ -210,9 +210,21 @@ def parse_output(simout):
     ]
     m_error = re.search("".join(tb_match_error), plain_simout)
 
+    # Check for a fatal error, which does not always give a non-zero return
+    # code. For example:
+    #
+    #   FATAL_ERROR: Vivado Simulator kernel has discovered an exceptional
+    #   condition from which it cannot recover. Process will terminate. For
+    #   technical support on this issue, please open a WebCase with this project
+    #   attached at http://www.xilinx.com/support."
+    #
+    m_fatal_error = re.search("^FATAL_ERROR:", plain_simout, re.MULTILINE)
+
     # Figure out the return code
     retcode = RETCODE_UNKNOWN_ERR
-    if m_fmt0 is not None or m_fmt1 is not None:
+    if m_fatal_error is not None:
+        retcode = RETCODE_EXEC_ERR
+    elif m_fmt0 is not None or m_fmt1 is not None:
         retcode = RETCODE_SUCCESS
         if m_fmt0 is not None:
             results["passed"] = m_fmt0.group(6) == b"PASSED" and m_error is None
