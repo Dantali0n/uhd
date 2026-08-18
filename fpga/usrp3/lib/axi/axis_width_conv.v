@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 //
 // Module: axis_width_conv
-// Description: 
+// Description:
 //   An AXI-Stream width conversion module that can convert from
 //   an arbitrary input width to an arbitrary output width. The
 //   module also supports an optional clock crossing. Data bits
@@ -17,7 +17,7 @@
 //         the AXI standard where the bits are "byte qualifiers". In
 //         this module, tkeep is a "word qualifier" where the width
 //         of a word can be arbitrary. If WORD_W = 8, the behavior
-//         of this module is identical to an AXI width converter. 
+//         of this module is identical to an AXI width converter.
 //
 // Parameters:
 //   - WORD_W: Bitwidth of a word
@@ -25,6 +25,8 @@
 //   - OUT_WORDS: Number of words in the output stream
 //   - SYNC_CLKS: Are s_axis_aclk and m_axis_aclk synchronous to each other?
 //   - PIPELINE: Which ports to pipeline? {NONE, IN, OUT, INOUT}
+//   - FIFO_SIZE: The size of the FIFO given as log2 of the number of
+//                WORD_W-bit words.
 //
 // Signals:
 //   - s_axis_* : Input sample stream (AXI-Stream)
@@ -35,9 +37,10 @@ module axis_width_conv #(
   parameter IN_WORDS  = 4,
   parameter OUT_WORDS = 6,
   parameter SYNC_CLKS = 0,
-  parameter PIPELINE  = "NONE"
+  parameter PIPELINE  = "NONE",
+  parameter FIFO_SIZE = 1
 )(
-  // Data In (AXI-Stream)                
+  // Data In (AXI-Stream)
   input  wire                          s_axis_aclk,    // Input stream Clock
   input  wire                          s_axis_rst,     // Input stream Reset
   input  wire [(IN_WORDS*WORD_W)-1:0]  s_axis_tdata,   // Input stream tdata
@@ -45,7 +48,7 @@ module axis_width_conv #(
   input  wire                          s_axis_tlast,   // Input stream tlast
   input  wire                          s_axis_tvalid,  // Input stream tvalid
   output wire                          s_axis_tready,  // Input stream tready
-  // Data Out (AXI-Stream)             
+  // Data Out (AXI-Stream)
   input  wire                          m_axis_aclk,    // Output stream Clock
   input  wire                          m_axis_rst,     // Output stream Reset
   output wire [(OUT_WORDS*WORD_W)-1:0] m_axis_tdata,   // Output stream tdata
@@ -118,13 +121,13 @@ module axis_width_conv #(
     y = b;
     while (!done) begin
       if (x < y) begin
-        swap = x; 
-        x = y; 
-        y = swap; 
+        swap = x;
+        x = y;
+        y = swap;
       end else if (y != 0) begin
         x = x - y;
       end else begin
-        done = 1'b1; 
+        done = 1'b1;
       end
     end
     // x is the greatest common divisor
@@ -148,11 +151,10 @@ module axis_width_conv #(
   // - The input and output clocks are the same
   // - The upsizer is effectively a passthrough and input registering is requested
   // - The downsizer is effectively a passthrough and output registering is requested
-  localparam [0:0] SKIP_FIFO = (SYNC_CLKS == 1) && (
+  localparam [0:0] SKIP_FIFO = (SYNC_CLKS == 1) && (FIFO_SIZE <= 1) && (
       ((PIPELINE == "IN"  || PIPELINE == "INOUT") && (UPSIZE_RATIO == 1)) ||
       ((PIPELINE == "OUT" || PIPELINE == "INOUT") && (DOWNSIZE_RATIO == 1))
     );
-  localparam FIFO_SIZE = 1;
 
   //----------------------------------------------
   // In => Upsizer => FIFO => Downsizer => Out
@@ -190,8 +192,14 @@ module axis_width_conv #(
       assign fifo_o_tvalid = fifo_i_tvalid;
       assign fifo_i_tready = fifo_o_tready;
     end else begin
+      // calculate the actual FIFO size as the width might be different than// WORD_W
+      localparam integer FIFO_ELEMENTS = $ceil((2.0 ** FIFO_SIZE) / INT_KEEP_W);
+      localparam integer FIFO_ELEMENTS_MIN = FIFO_ELEMENTS > 0 ? FIFO_ELEMENTS : 1;
+      localparam integer REQUESTED_FIFO_SIZE = $clog2(FIFO_ELEMENTS_MIN);
+      localparam integer ADJUSTED_FIFO_SIZE = REQUESTED_FIFO_SIZE > 0 ? REQUESTED_FIFO_SIZE : 1;
+
       if (SYNC_CLKS) begin
-        axi_fifo #(.WIDTH(INT_DATA_W+INT_KEEP_W+1), .SIZE(FIFO_SIZE)) fifo_i (
+        axi_fifo #(.WIDTH(INT_DATA_W+INT_KEEP_W+1), .SIZE(ADJUSTED_FIFO_SIZE)) fifo_i (
           .clk(s_axis_aclk), .reset(s_axis_rst), .clear(1'b0),
           .i_tdata({fifo_i_tlast, fifo_i_tkeep, fifo_i_tdata}),
           .i_tvalid(fifo_i_tvalid), .i_tready(fifo_i_tready),
@@ -200,7 +208,7 @@ module axis_width_conv #(
           .space(), .occupied()
         );
       end else begin
-        axi_fifo_2clk #(.WIDTH(INT_DATA_W+INT_KEEP_W+1), .SIZE(FIFO_SIZE)) fifo_i (
+        axi_fifo_2clk #(.WIDTH(INT_DATA_W+INT_KEEP_W+1), .SIZE(ADJUSTED_FIFO_SIZE)) fifo_i (
           .reset(s_axis_rst),
           .i_aclk(s_axis_aclk),
           .i_tdata({fifo_i_tlast, fifo_i_tkeep, fifo_i_tdata}),
