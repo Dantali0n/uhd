@@ -7,12 +7,12 @@
 //
 // Description:
 //
-//   A deframer module for CHDR data packets. It accepts an input CHDR stream 
-//   and produces an output data stream that includes the payload of the 
-//   packet, as well as timestamp and packet flags presented as sideband 
+//   A deframer module for CHDR data packets. It accepts an input CHDR stream
+//   and produces an output data stream that includes the payload of the
+//   packet, as well as timestamp and packet flags presented as sideband
 //   information.
 //
-//   This module also performs an optional clock crossing and data width 
+//   This module also performs an optional clock crossing and data width
 //   conversion from CHDR_W to a user requested width for the payload data bus.
 //
 // Parameters:
@@ -243,23 +243,23 @@ module chdr_to_axis_data #(
   assign in_pyld_tvalid = in_chdr_tvalid && (state == ST_BODY);
 
   always @(*) begin
-    // Packet timestamp and flags go into the info FIFO, but only if it's a 
+    // Packet timestamp and flags go into the info FIFO, but only if it's a
     // data packet since non-data packets will be discarded.
     if (CHDR_W > 64) begin
       // When CHDR_W > 64, all info will be in the first word of the CHDR packet
-      in_info_tdata =  { in_chdr_tdata[127:64], 
+      in_info_tdata =  { in_chdr_tdata[127:64],
                          chdr_get_has_time(in_chdr_tdata),
                          chdr_calc_payload_length(CHDR_W, in_chdr_tdata),
                          chdr_get_eob(in_chdr_tdata),
                          chdr_get_eov(in_chdr_tdata) };
-      in_info_tvalid = in_chdr_tvalid && (state == ST_HDR && 
+      in_info_tvalid = in_chdr_tvalid && (state == ST_HDR &&
         (in_pkt_type == CHDR_PKT_TYPE_DATA || in_pkt_type == CHDR_PKT_TYPE_DATA_TS));
     end else begin
-      // When CHDR_W == 64, the flags will be in the first word of the packet, 
+      // When CHDR_W == 64, the flags will be in the first word of the packet,
       // but the timestamp will be in the second word, if there is a timestamp.
       if (state == ST_HDR && in_pkt_type == CHDR_PKT_TYPE_DATA) begin
         // No timestamp in this case
-        in_info_tdata  = { in_chdr_tdata[63:0], 1'b0, 
+        in_info_tdata  = { in_chdr_tdata[63:0], 1'b0,
                            chdr_calc_payload_length(CHDR_W, in_chdr_tdata),
                            chdr_get_eob(in_chdr_tdata), chdr_get_eov(in_chdr_tdata) };
         in_info_tvalid = in_chdr_tvalid;
@@ -284,10 +284,6 @@ module chdr_to_axis_data #(
   // ---------------------------------------------------
   //  Payload and Sideband Data FIFOs
   // ---------------------------------------------------
-  wire [CHDR_W-1:0]       out_pyld_tdata;
-  wire [CHDR_KEEP_W-1:0]  out_pyld_tkeep;
-  wire                    out_pyld_tlast, out_pyld_tvalid, out_pyld_tready;
-  
   wire [INFO_W-1:0]       out_info_tdata;
   wire                    out_info_tvalid, out_info_tready;
 
@@ -318,29 +314,25 @@ module chdr_to_axis_data #(
         .o_tvalid(out_info_tvalid), .o_tready(out_info_tready)
       );
     end
-  
+
     // Payload FIFOs
     if (CHDR_W != ITEM_W*NIPC) begin : gen_axis_width_conv
-      axi_fifo #(.WIDTH(CHDR_W+CHDR_KEEP_W+1), .SIZE(PYLD_FIFO_SIZE)) pyld_fifo_i (
-        .clk(axis_chdr_clk), .reset(axis_chdr_rst), .clear(1'b0),
-        .i_tdata({in_pyld_tlast, in_pyld_tkeep, in_pyld_tdata}),
-        .i_tvalid(in_pyld_tvalid), .i_tready(in_pyld_tready),
-        .o_tdata({out_pyld_tlast, out_pyld_tkeep, out_pyld_tdata}),
-        .o_tvalid(out_pyld_tvalid), .o_tready(out_pyld_tready),
-        .space(), .occupied()
-      );
-
       // Do the width conversion and clock crossing in the axis_width_conv
       // module to ensure that the resize happens on the correct side of the
       // clock crossing.
+      // PYLD_FIFO_SIZE is specified in log2 of the number of CHDR words. The axis_width_conv
+      // module expects the FIFO size in log2 of WORD_W. Add the input ratio to
+      // the logarithmic FIFO size to get the correct FIFO size in log2 of WORD_W.
+      localparam integer PYLD_FIFO_SIZE_WORD = PYLD_FIFO_SIZE + $clog2(CHDR_W/ITEM_W);
+
       axis_width_conv #(
         .WORD_W(ITEM_W), .IN_WORDS(CHDR_W/ITEM_W), .OUT_WORDS(NIPC),
-        .SYNC_CLKS(SYNC_CLKS), .PIPELINE("NONE")
+        .SYNC_CLKS(SYNC_CLKS), .PIPELINE("NONE"), .FIFO_SIZE(PYLD_FIFO_SIZE_WORD)
       ) payload_width_conv_i (
         .s_axis_aclk(axis_chdr_clk), .s_axis_rst(axis_chdr_rst),
-        .s_axis_tdata(out_pyld_tdata), .s_axis_tkeep(out_pyld_tkeep),
-        .s_axis_tlast(out_pyld_tlast), .s_axis_tvalid(out_pyld_tvalid),
-        .s_axis_tready(out_pyld_tready),
+        .s_axis_tdata(in_pyld_tdata), .s_axis_tkeep(in_pyld_tkeep),
+        .s_axis_tlast(in_pyld_tlast), .s_axis_tvalid(in_pyld_tvalid),
+        .s_axis_tready(in_pyld_tready),
         .m_axis_aclk(axis_data_clk), .m_axis_rst(axis_data_rst),
         .m_axis_tdata(conv_pyld_tdata), .m_axis_tkeep(conv_pyld_tkeep),
         .m_axis_tlast(conv_pyld_tlast), .m_axis_tvalid(conv_pyld_tvalid),
@@ -352,8 +344,8 @@ module chdr_to_axis_data #(
           .clk(axis_chdr_clk), .reset(axis_chdr_rst), .clear(1'b0),
           .i_tdata({in_pyld_tlast, in_pyld_tkeep, in_pyld_tdata}),
           .i_tvalid(in_pyld_tvalid), .i_tready(in_pyld_tready),
-          .o_tdata({out_pyld_tlast, out_pyld_tkeep, out_pyld_tdata}),
-          .o_tvalid(out_pyld_tvalid), .o_tready(out_pyld_tready),
+          .o_tdata({conv_pyld_tlast, conv_pyld_tkeep, conv_pyld_tdata}),
+          .o_tvalid(conv_pyld_tvalid), .o_tready(conv_pyld_tready),
           .space(), .occupied()
         );
       end else begin : gen_async_pyld_fifo
@@ -363,17 +355,10 @@ module chdr_to_axis_data #(
           .i_tdata({in_pyld_tlast, in_pyld_tkeep, in_pyld_tdata}),
           .i_tvalid(in_pyld_tvalid), .i_tready(in_pyld_tready),
           .o_aclk(axis_data_clk),
-          .o_tdata({out_pyld_tlast, out_pyld_tkeep, out_pyld_tdata}),
-          .o_tvalid(out_pyld_tvalid), .o_tready(out_pyld_tready)
+          .o_tdata({conv_pyld_tlast, conv_pyld_tkeep, conv_pyld_tdata}),
+          .o_tvalid(conv_pyld_tvalid), .o_tready(conv_pyld_tready)
         );
       end
-
-      // No width conversion needed
-      assign conv_pyld_tdata  = out_pyld_tdata;
-      assign conv_pyld_tkeep  = out_pyld_tkeep;
-      assign conv_pyld_tlast  = out_pyld_tlast;
-      assign conv_pyld_tvalid = out_pyld_tvalid;
-      assign out_pyld_tready  = conv_pyld_tready;
     end
   endgenerate
 
@@ -428,7 +413,7 @@ module chdr_to_axis_data #(
     .s_axis_tlast(flush_tlast),
     .s_axis_tvalid(flush_tvalid),
     .s_axis_tready(flush_tready),
-    .m_axis_tdata({m_axis_ttimestamp, m_axis_thas_time, m_axis_tlength, 
+    .m_axis_tdata({m_axis_ttimestamp, m_axis_thas_time, m_axis_tlength,
                    m_axis_teob, m_axis_teov, m_axis_tkeep, m_axis_tdata}),
     .m_axis_tlast(m_axis_tlast),
     .m_axis_tvalid(m_axis_tvalid),

@@ -324,20 +324,22 @@ module axis_data_to_chdr #(
     // Transfer packet payload between clock domains:
     // in_pyld_* (axis_data_clk) to out_pyld_* (axis_chdr_clk)
     if (NIPC != CHDR_W/ITEM_W) begin : gen_axis_width_conv
-      wire [CHDR_W-1:0] pyld_resize_tdata;
-      wire              pyld_resize_tlast;
-      wire              pyld_resize_tvalid;
-      wire              pyld_resize_tready;
-
       // Do the width conversion and clock crossing in the axis_width_conv
       // module to ensure that the resize happens on the correct side of the
       // clock crossing.
+
+      // PAYLOAD_FIFO_SIZE is specified in log2 of the number of CHDR words. The axis_width_conv
+      // module expects the FIFO size in log2 of WORD_W. Add the output ratio to
+      // the logarithmic FIFO size to get the correct FIFO size in log2 of WORD_W.
+      localparam integer PAYLOAD_FIFO_SIZE_WORD = PAYLOAD_FIFO_SIZE + $clog2(CHDR_W/ITEM_W);
+
       axis_width_conv #(
         .WORD_W    (ITEM_W),
         .IN_WORDS  (NIPC),
         .OUT_WORDS (CHDR_W/ITEM_W),
         .SYNC_CLKS (SYNC_CLKS),
-        .PIPELINE  ("IN")
+        .PIPELINE  ("IN"),
+        .FIFO_SIZE (PAYLOAD_FIFO_SIZE_WORD)
       ) payload_width_conv_i (
         .s_axis_aclk   (axis_data_clk),
         .s_axis_rst    (axis_data_rst),
@@ -348,28 +350,11 @@ module axis_data_to_chdr #(
         .s_axis_tready (in_pyld_tready),
         .m_axis_aclk   (axis_chdr_clk),
         .m_axis_rst    (axis_chdr_rst),
-        .m_axis_tdata  (pyld_resize_tdata),
+        .m_axis_tdata  (out_pyld_tdata),
         .m_axis_tkeep  (),
-        .m_axis_tlast  (pyld_resize_tlast),
-        .m_axis_tvalid (pyld_resize_tvalid),
-        .m_axis_tready (pyld_resize_tready)
-      );
-
-      axi_fifo #(
-        .WIDTH    (CHDR_W+1),
-        .SIZE     (PAYLOAD_FIFO_SIZE)
-      ) pyld_fifo (
-        .clk      (axis_chdr_clk),
-        .reset    (axis_chdr_rst),
-        .clear    (1'b0),
-        .i_tdata  ({pyld_resize_tlast, pyld_resize_tdata}),
-        .i_tvalid (pyld_resize_tvalid),
-        .i_tready (pyld_resize_tready),
-        .o_tdata  ({out_pyld_tlast, out_pyld_tdata}),
-        .o_tvalid (out_pyld_tvalid),
-        .o_tready (out_pyld_tready),
-        .space    (),
-        .occupied ()
+        .m_axis_tlast  (out_pyld_tlast),
+        .m_axis_tvalid (out_pyld_tvalid),
+        .m_axis_tready (out_pyld_tready)
       );
     end else begin : no_gen_axis_width_conv
       if (SYNC_CLKS) begin : gen_sync_pyld_fifo
