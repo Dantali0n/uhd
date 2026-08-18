@@ -51,7 +51,7 @@ if os.name == "nt":
     if not uhd_dll_dir:
         print(
             f"WARNING: Failed to add {uhd_dll_name} path to DLL search, module may not import properly, "
-            "version check skipped.\nPlease ensure UHD_PKG_DIR (binary installation) is set correctly. "
+            "version check skipped.\nPlease ensure UHD_PKG_PATH (binary installation) is set correctly. "
             'For Python version < 3.8 the "UHD\\bin" directory needs to be added to PATH environment variable.'
         )
 
