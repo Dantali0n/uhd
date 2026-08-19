@@ -27,6 +27,7 @@ module b310_pcie_int #(
   // Clocks and Resets
   //---------------------------------------------------------
   input wire          reg_clk,
+  input wire          reg_rst,
   input wire          dma_clk,
   input wire          bus_clk,
   input wire          bus_rst,
@@ -118,7 +119,7 @@ module b310_pcie_int #(
     'h00200   // RX_DMA
   };
 
-  ctrlport_if reg_ctrlport_if (.clk(reg_clk), .rst(bus_rst));
+  ctrlport_if reg_ctrlport_if (.clk(reg_clk), .rst(reg_rst));
   ctrlport_if bclk_ctrlport_if (.clk(bus_clk), .rst(bus_rst));
   ctrlport_if ep_ctrlport_if [NUM_EP] (
     .clk(bus_clk),

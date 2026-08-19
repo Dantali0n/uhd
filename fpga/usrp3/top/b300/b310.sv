@@ -398,6 +398,14 @@ module b310
   // UHD PCIe Interface
   //---------------------------------------------------------
 
+  logic dma_rst;
+
+  reset_sync dma_rst_sync (
+    .clk      (dma_clk),   //input wire
+    .reset_in (bus_arst),  //input wire
+    .reset_out(dma_rst)    //output reg
+  );
+
   // Consolidate DMA streams for the transport adapter.
   wire [DMA_STREAM_WIDTH-1:0] dma_rx_tdata;
   wire                        dma_rx_tlast;
@@ -417,9 +425,10 @@ module b310
     .BUS_CLK_RATE    (BUS_CLK_RATE)       //int:=166666666
   ) b310_pcie_int_i (
     .reg_clk               (dma_clk),                        //input wire
+    .reg_rst               (dma_rst),                        //input wire
     .dma_clk               (dma_clk),                        //input wire
     .bus_clk               (bus_clk),                        //input wire
-    .bus_rst               (bus_arst),                       //input wire
+    .bus_rst               (bus_rst),                        //input wire
     .host_dma_tx_tdata     (host_dma_tx_tdata),              //input wire[(NUM_TX_STREAMS-1):0][(DMA_STREAM_WIDTH-1):0]
     .host_dma_tx_tvalid    (host_dma_tx_tvalid),             //input wire[(NUM_TX_STREAMS-1):0]
     .host_dma_tx_tready    (host_dma_tx_tready),             //output wire[(NUM_TX_STREAMS-1):0]
@@ -652,8 +661,9 @@ module b310
   logic lmk_reset;
   logic lmk_source_select;
 
-  logic gps_lmk_pps_in;
-  logic gps_pw_fault;
+  logic       gps_lmk_pps_in;
+  logic       gps_pw_fault;
+  logic [1:0] gps_lmk_status;
 
   // GPIO control signals
   wire [9:0] fp_gpio_dir;
@@ -665,6 +675,9 @@ module b310
 
   // Device monitoring
   logic        pwr_monitor_alert;
+  logic        pwr_1v2_pg;
+  logic        pwr_25w_src;
+  logic        pwr_typec_negotiated;
   logic [11:0] device_temp;
 
   b310_core #(
@@ -772,7 +785,7 @@ module b310
     .lmk_sync               (LMK_SYNC),                      //output wire
     .pps_in                 (EXT_PPS_IN),                    //input wire
     .gps_lmk_pps_in         (gps_lmk_pps_in),                //input wire
-    .gps_lmk_status         (NSYNC_STATUS),                  //input wire[1:0]
+    .gps_lmk_status         (gps_lmk_status),                //input wire[1:0]
     .gps_lmk_gpio           (NSYNC_GPIO0),                   //output logic
     .gps_pw_fault           (gps_pw_fault),                  //input wire
     .gps_pps_out            (GPS_PPS_OUT),                   //input wire
@@ -796,9 +809,9 @@ module b310
     .jtag_cpld_tdi          (JTAG_CPLD_TDI),                 //output wire
     .jtag_cpld_tdo          (JTAG_CPLD_TDO),                 //input wire
     .tbolt_pd_ctrl_reset    (TBOLT_PD_CTRL_RESET),           //output logic
-    .pwr_1v2_pg             (PG_1V2),                        //input wire
-    .pwr_25w_src            (GT_25W_PWR_SRC),                //input wire
-    .pwr_typec_negotiated   (TYPEC_PWR_NEGOTIATED),          //input wire
+    .pwr_1v2_pg             (pwr_1v2_pg),                    //input wire
+    .pwr_25w_src            (pwr_25w_src),                   //input wire
+    .pwr_typec_negotiated   (pwr_typec_negotiated),          //input wire
     .pwr_monitor_alert      (pwr_monitor_alert),             //input wire
     .pwr_led_orange         (pwr_led_orange)                 //output logic
   );
@@ -844,8 +857,7 @@ module b310
   assign ADRV_GPIO[5] = radio_ch1_adrv_gpio_dir[1] ? radio_ch1_adrv_gpio_out[1] : 1'bz;
   assign ADRV_GPIO[6] = radio_ch1_adrv_gpio_dir[2] ? radio_ch1_adrv_gpio_out[2] : 1'bz;
   assign ADRV_GPIO[7] = radio_ch1_adrv_gpio_dir[3] ? radio_ch1_adrv_gpio_out[3] : 1'bz;
-  assign radio_ch0_adrv_gpio_in = ADRV_GPIO[3:0];
-  assign radio_ch1_adrv_gpio_in = ADRV_GPIO[7:4];
+
   // TRX - First 4 TRX controls for channel 0, next 4 TRX controls for channel 1
   assign ADRV_TRXA_CTRL = radio_ch0_adrv_trx_out[0];
   assign ADRV_TRXB_CTRL = radio_ch0_adrv_trx_out[1];
@@ -856,8 +868,19 @@ module b310
   assign ADRV_TRXG_CTRL = radio_ch1_adrv_trx_out[2];
   assign ADRV_TRXH_CTRL = radio_ch1_adrv_trx_out[3];
 
-  assign radio_ch0_adrv_int = ADRV_GPINT[0];
-  assign radio_ch1_adrv_int = ADRV_GPINT[1];
+  // ADRV asynchronous GPIO input synchronization.
+  // No coherency required for these asynchronous inputs..
+  synchronizer #(
+    .WIDTH           (10),  //integer:=1
+    .STAGES          (2),  //integer:=2
+    .INITIAL_VAL     (0),  //integer:=0
+    .FALSE_PATH_TO_IN(1)   //integer:=1
+  ) synchronizer_adrv_gpio_in (
+    .clk(radio_clk),
+    .rst(1'b0),
+    .in ({ADRV_GPINT[1], ADRV_GPINT[0], ADRV_GPIO[7:4], ADRV_GPIO[3:0]}),
+    .out({radio_ch1_adrv_int, radio_ch0_adrv_int, radio_ch1_adrv_gpio_in, radio_ch0_adrv_gpio_in})
+  );
 
   // The observation receiver on the ADRV9032 is not used
   assign ADRV_ORXA_CTRL = 1'b0;
@@ -913,18 +936,53 @@ module b310
   assign TCXO_EN_N = ~tcxo_en;
   assign LMK32_VCXO_SEL_122M88 = ~lmk_source_select; // Select 122.88 MHz when low.
   assign REF_CLK_SEL = ref_clk_source;
-  assign lmk_lock_status = LMK32_STATUS;
+
+  synchronizer #(
+    .WIDTH           (1),  //integer:=1
+    .STAGES          (2),  //integer:=2
+    .INITIAL_VAL     (0),  //integer:=0
+    .FALSE_PATH_TO_IN(1)   //integer:=1
+  ) synchronizer_lmk_status_in (
+    .clk(bus_clk),
+    .rst(1'b0),
+    .in (LMK32_STATUS),
+    .out(lmk_lock_status)
+  );
 
   // GPS_REF[1] is the PPS signal from LMK05318, which is disciplined by the GPSDO.
   assign gps_lmk_pps_in = GPS_REF[1];
   assign gps_pw_fault   = ~GPS_PWR_FAULT_N; // Active low power fault signal from GPSDO
+
+  synchronizer #(
+    .WIDTH           (2),  //integer:=1
+    .STAGES          (2),  //integer:=2
+    .INITIAL_VAL     (0),  //integer:=0
+    .FALSE_PATH_TO_IN(1)   //integer:=1
+  ) synchronizer_gps_status_in (
+    .clk(bus_clk),
+    .rst(1'b0),
+    .in (NSYNC_STATUS),
+    .out(gps_lmk_status)
+  );
 
   assign JTAG_TBOLT_TCK = 1'bZ; // JTAG TCK is not used, set to high-impedance
   assign JTAG_TBOLT_TMS = 1'bZ; // JTAG TMS is not used, set to high-impedance
   assign JTAG_TBOLT_TDI = 1'bZ; // JTAG TDI is not used, set to high-impedance
 
   // Power monitoring
-  assign pwr_monitor_alert = ~VBUS_ALERT_N; // Active low alert signal from power monitor
+
+  // Synchronization and active-high conversion.
+  synchronizer #(
+    .WIDTH           (4),  //integer:=1
+    .STAGES          (2),  //integer:=2
+    .INITIAL_VAL     (0),  //integer:=0
+    .FALSE_PATH_TO_IN(1)   //integer:=1
+    ) synchronizer_async_power_in (
+    .clk(bus_clk),
+    .rst(1'b0),
+    .in ({~VBUS_ALERT_N, PG_1V2, GT_25W_PWR_SRC, TYPEC_PWR_NEGOTIATED}),
+    .out({pwr_monitor_alert, pwr_1v2_pg, pwr_25w_src, pwr_typec_negotiated})
+  );
 
   // Thunderbolt Resets
   //-----------------------------------------
