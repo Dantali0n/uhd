@@ -1116,6 +1116,19 @@ def _rpc_server_process(shared_state, port, default_args):
         options=[
             ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_SIZE),
             ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_SIZE),
+            # Permit the client's keepalive pings (see mpm_client.cpp.mako).
+            # The host pings every 30 s to keep an otherwise-idle channel alive
+            # to avoid silently closing the channel which would result into
+            # "Deadline Exceeded" on the next RPC after a long idle.
+            # Without these options the server treats frequent pings on an
+            # idle connection as abusive and sends GOAWAY "too_many_pings",
+            # tearing down the connection.
+            ("grpc.keepalive_permit_without_calls", 1),
+            # Accept a ping as often as every 30 s (must be <= the client's 60 s
+            # keepalive interval to avoid too_many_pings).
+            ("grpc.http2.min_ping_interval_without_data_ms", 30000),
+            # Do not cap the number of pings the client may send without data.
+            ("grpc.http2.max_pings_without_data", 0),
             # Disable the server's BDP (bandwidth-estimation) ping. It fires
             # repeatedly and its ACK must return within grpcio's internal BDP
             # timeout. The ACK may be missed if the server is stalled by ClkMgr

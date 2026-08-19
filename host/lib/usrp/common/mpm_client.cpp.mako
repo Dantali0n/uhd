@@ -29,6 +29,18 @@
 #ifndef GRPC_ARG_USE_LOCAL_SUBCHANNEL_POOL
 #define GRPC_ARG_USE_LOCAL_SUBCHANNEL_POOL "grpc.use_local_subchannel_pool"
 #endif
+// Keepalive channel-arg keys. These string keys are stable
+// across gRPC versions; provide fallback definitions for older releases that
+// do not export the macros.
+#ifndef GRPC_ARG_KEEPALIVE_TIME_MS
+#define GRPC_ARG_KEEPALIVE_TIME_MS "grpc.keepalive_time_ms"
+#endif
+#ifndef GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS
+#define GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS "grpc.keepalive_permit_without_calls"
+#endif
+#ifndef GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA
+#define GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA "grpc.http2.max_pings_without_data"
+#endif
 
 using uhd::rpc_exception;
 
@@ -221,6 +233,25 @@ public:
         // A local subchannel pool isolates each channel so destroying an old
         // session cannot drop the active session's connection.
         args.SetInt(GRPC_ARG_USE_LOCAL_SUBCHANNEL_POOL, 1);
+
+        // Keep idle channels alive. The main RPC channel can sit idle for a
+        // long time (e.g. an interactive Python session left open) while only
+        // the separate claimer channel sees traffic. Without keepalive, gRPC
+        // sends nothing on an idle channel, so it self-closes the transport
+        // (GRPC_ARG_CLIENT_IDLE_TIMEOUT_MS). The next RPC then has to re-
+        // establish the connection within its short per-call deadline and may
+        // reports "Deadline Exceeded". Sending HTTP/2 pings every 60 s keeps
+        // the flow warm. The server must permit this ping cadence otherwise
+        // it responds with GOAWAY "too_many_pings".
+        args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, 60000);
+        // gRPC pings keepalive even if the channel is idle (no active RPC calls)
+        args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
+        // By default gRPC stops sending keepalive pings after 2 pings without
+        // any data frame (GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA default = 2),
+        // which would silently defeat keepalive on an idle channel.
+        // Set to 0 (unlimited) so pings continue for the lifetime of an idle
+        // connection.
+        args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
 
         auto channel = grpc::CreateCustomChannel(server_address, grpc::InsecureChannelCredentials(), args);
         _channel = channel;
