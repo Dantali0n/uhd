@@ -624,10 +624,11 @@ module x4xx (
   `endif
 
   if (`ENABLE_CLOCK_WD) begin : gen_clock_wd
-    // Mode-dependent max RFDC clock rate (in Hz)
-    // Maps sample rates to approximate rfdc_clk frequencies
-    // 125 MHz is the max rate for the RFDC interface clocks
-    localparam int MAX_RFDC_CLK_RATE = 1_000_000_000 / RFDC_SPC;
+    // Mode-dependent max radio clock rate (in Hz)
+    // Maps sample rates to approximate radio_clk frequencies
+    // 1 GHz is the max sample rate for the radio interface.
+    // Devide by radio samples per cycle to get the max radio clock rate.
+    localparam int MAX_RADIO_CLK_RATE = 1_000_000_000 / RADIO_SPC;
 
     wire mgt_refclk_i;
     wire mgt_refclk_fabric;
@@ -667,13 +668,13 @@ module x4xx (
 
     for (genvar db_i = 0; db_i < NUM_DBOARDS; db_i = db_i + 1) begin : gen_clocking_watchdog
       clocking_watchdog #(
-        .MAX_CLOCK_RATE(MAX_RFDC_CLK_RATE),
+        .MAX_CLOCK_RATE(MAX_RADIO_CLK_RATE),
         .MONITOR_CLK_FREQ(100_000_000)  // mgt_refclk_fabric is 100 MHz
       ) rfdc_clocking_watchdog_i (
         .monitor_clk       (mgt_refclk_fabric),
         .rst               (mgt_refclk_fabric_rst),
         .clock_locked      (data_clock_locked),
-        .watched_clk       (rfdc_clk[db_i]),
+        .watched_clk       (radio_clk[db_i]),
         .clock_fault       (rfdc_clk_fault[db_i])
       );
     end
