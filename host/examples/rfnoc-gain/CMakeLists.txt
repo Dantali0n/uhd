@@ -12,7 +12,7 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
 
 # Set the version information here
 set(VERSION_MAJOR 4)
-set(VERSION_API   9)
+set(VERSION_API   10)
 set(VERSION_ABI   0)
 
 ########################################################################
@@ -49,7 +49,7 @@ endif()
 ###########################################################################
 # Find UHD
 ###########################################################################
-find_package(UHD 4.7)
+find_package(UHD 4.10)
 if(UHD_FOUND)
     message(STATUS "Found UHD:")
     message(STATUS " * Version: ${UHD_VERSION}")

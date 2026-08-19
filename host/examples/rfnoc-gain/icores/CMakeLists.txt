@@ -5,3 +5,4 @@
 #
 
 RFNOC_REGISTER_IMAGE_CORE(SRC x310_rfnoc_image_core.yml)
+RFNOC_REGISTER_IMAGE_CORE(SRC x410_XG_200_rfnoc_image_core.yml)

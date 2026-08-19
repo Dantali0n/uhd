@@ -85,27 +85,39 @@ Files that are required for the software component (e.g., everything under `incl
 files may go to `/usr/include/rfnoc`, shared libraries might go to `/usr/lib`,
 and so on).
 
-
-
 ## Building FPGA bitfiles from this OOT module
 
 Building a bitfile requires an image core file, and those are stored under the
 `icores` directory. The image core files are YAML files that define the contents
 of the RFNoC image, including the blocks that are part of the image.
+The bitfile can be built using different methods:
+
+### Prerequisites
+
+To build and use the `rfnoc_gain` Python module, `pybind11` must be installed.
+If it is not installed system-wide, provide its path to CMake when configuring
+the project: `-Dpybind11_DIR="$(python -m pybind11 --cmakedir)"`.
+If UHD was built with a different `pybind11` installation, you may also need to
+provide the path to the `pybind11` headers used to build UHD:
+`-DPYBIND11_INCLUDE_DIR=/path/to/uhd/host/lib/deps/pybind11/include`.
+
+### Using make
 
 Inside the `icores` directory is a CMakeLists.txt file, inside which bitfile
 targets can be defined using the `RFNOC_REGISTER_IMAGE_CORE()` macro. For example,
 if we register the image core file `x310_rfnoc_image_core.yml` in the CMakeLists.txt
-file, we can build the bitfile using the following command (assuming CMake was
-executed beforehand):
+file, we can build the bitfile using the following command:
 
 ```sh
 cd /path/to/rfnoc-gain/build
+cmake .. -DUHD_FPGA_DIR=/path/to/uhd/fpga
 make x310_rfnoc_image_core
 ```
 
 Note that this will build the bitfile with source files from this directory. This
 workflow is therefore a sensible way to build bitfiles during development.
+
+### Using rfnoc_image_builder
 
 Using `make` is not a requirement, it is merely a convenience. You can also
 directly run `rfnoc_image_builder` and point it to the `rfnoc` subdirectory:
@@ -115,26 +127,23 @@ cd /path/to/rfnoc-gain/
 rfnoc_image_builder -y ./icores/x310_rfnoc_image_core.yml -I ./rfnoc
 ```
 
-This has the same effect, but let's you control the precise arguments to the
+This has the same effect, but lets you control the precise arguments to the
 image builder.
+
+### Using rfnoc_image_builder with the installed out-of-tree module files
 
 However, the design of the out-of-tree module is such that it is also possible
 to install, and then build bitfiles using the installed files. This is of value
 when installing multiple OOT modules, and not planning to modify their source
 files.
 
-For example, the following workflow is valid:
-
 ```sh
 cd /path/to/rfnoc-gain  # Switch to this file's directory
 mkdir build && cd build && cmake .. -DUHD_FPGA_DIR=/path/to/uhd/fpga  # Configure the project
-# Now, launch an image build and use all files from this directory:
-rfnoc_image_builder -y ../icores/x310_rfnoc_image_core.yml -I ../rfnoc
 make install  # Install software and gateware
-# Build again, without -I:
+# Build using the installed files:
 rfnoc_image_builder -y ../icores/x310_rfnoc_image_core.yml
 ```
 
-In this workflow, we launch `rfnoc_image_builder` once with `-I` on the current
-directory, and once without. In the latter case, the image builder will only
-use files that were installed into the right location.
+In this workflow, we launch `rfnoc_image_builder` without `-I`. In this case,
+the image builder will only use files that were installed into the right location.
