@@ -102,6 +102,7 @@
 		reg = <0x42c00000 0x1000>;
 		interrupt-parent = <&intc>;
 		interrupts = <0 54 4>;
+		current-speed = <115200>;
 	};
 
 	qsfp_i2c: qsfp-i2c@43D80000 {
