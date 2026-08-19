@@ -1116,6 +1116,11 @@ def _rpc_server_process(shared_state, port, default_args):
         options=[
             ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_SIZE),
             ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_SIZE),
+            # Disable the server's BDP (bandwidth-estimation) ping. It fires
+            # repeatedly and its ACK must return within grpcio's internal BDP
+            # timeout. The ACK may be missed if the server is stalled by ClkMgr
+            # PLL-lock polling, causing the server to tear down the connection.
+            ("grpc.http2.bdp_probe", 0),
         ],
     )
 
