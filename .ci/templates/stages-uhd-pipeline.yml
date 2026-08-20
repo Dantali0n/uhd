@@ -784,11 +784,16 @@ stages:
         clean: true
     rfnoc_include_dir: $(Build.SourcesDirectory)/rfnoc-oot-blocks-dev/rfnoc
 
+# We don't want to run this stage on master, because it will always fail due to the check that the hw-tools have implemented. 
 - stage: usrp4_tests
   displayName: Simulate + Build usrp4-hw
   dependsOn: analyze_changeset
   condition: >
-    and(succeeded(),
+    and(
+      succeeded(),
+      not(
+        eq(variables['Build.SourceBranch'], 'refs/heads/master')
+      ),
       or(
         contains(dependencies.analyze_changeset.outputs['analyze.gen_testlist.UhdTestList'], 'fpga.usrp3.x4xx'),
         contains(dependencies.analyze_changeset.outputs['analyze.gen_testlist.UhdTestList'], 'fpga.usrp3.all'),
