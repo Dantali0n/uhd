@@ -212,7 +212,7 @@ class ZynqComponents:
         file_extension = file_extension[1:].lower()
         updc = self._merge_updateable_components()
         if file_extension not in updc["fpga"].get("supported_file_extensions", ["bit", "bin"]):
-            if not self.device_info.get("customizable_fpga", True):
+            if self.device_info.get("locked_fpga", True):
                 msg = " Please note that only signed bitstreams (.bin files) from official UHD releases are supported."
             else:
                 msg = ""
@@ -229,8 +229,8 @@ class ZynqComponents:
             fpga_bit_to_bin(filepath, binfile_path, flip=True)
         elif file_extension == "bin":
             if self.handle_bootgen_bin_files:
-                if not self.device_info.get("customizable_fpga", True):
-                    # In case of non-customizable FPGA, verify that .bin file is signed
+                if self.device_info.get("locked_fpga", False):
+                    # In case of locked FPGA, verify that .bin file is signed
                     self.log.debug("Verifying FPGA bitstream (.bin file)")
                     try:
                         verify(filepath, self.bootgen_arch)

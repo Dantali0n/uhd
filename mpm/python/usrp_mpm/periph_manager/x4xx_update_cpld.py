@@ -289,9 +289,9 @@ def main():
                 0x410: "X410",
                 0x420: "X420",
                 0x440: "X440",
-                0x7410: "X410 (non-customizable FPGA)",
-                0x7420: "X420 (non-customizable FPGA)",
-                0x7440: "X440 (non-customizable FPGA)",
+                0x7410: "X410 (locked FPGA)",
+                0x7420: "X420 (locked FPGA)",
+                0x7440: "X440 (locked FPGA)",
             }
             device = devices.get(pid, "unknown device")
             parser.epilog = (
