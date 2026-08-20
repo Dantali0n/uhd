@@ -163,7 +163,9 @@ def spawn_processes(log, args):
     if watchdog.has_watchdog():
         watchdog.transfer_control(_PROCESSES[-1].pid)
     log.info("Spawning discovery process...")
-    _PROCESSES.append(mpm.discovery.spawn_discovery_process(shared, args.discovery_addr))
+    _PROCESSES.append(
+        mpm.discovery.spawn_discovery_process(shared, args.discovery_addr, mpm.__mpm_device__)
+    )
     log.debug("Discovery process has PID: %d", _PROCESSES[-1].pid)
     log.info("Processes launched. Registering signal handlers.")
     # Launch the kill thread

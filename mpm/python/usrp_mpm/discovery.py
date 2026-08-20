@@ -26,19 +26,21 @@ IP_MTU_DISCOVER = 10
 IP_PMTUDISC_DO = 2
 
 
-def spawn_discovery_process(shared_state, discovery_addr):
+def spawn_discovery_process(shared_state, discovery_addr, mpm_device):
     """Returns a process that contains the device discovery.
 
     :param shared_state: Shared state of device (is it claimed, etc.).
             Is a SharedState() object.
     :param discovery_addr: Discovery will listen on this address(es)
     """
-    proc = Process(target=_discovery_process, name="Discovery", args=(shared_state, discovery_addr))
+    proc = Process(
+        target=_discovery_process, name="Discovery", args=(shared_state, discovery_addr, mpm_device)
+    )
     proc.start()
     return proc
 
 
-def _discovery_process(state, discovery_addr):
+def _discovery_process(state, discovery_addr, mpm_device):
     """The actual process for device discovery.
 
     Is spawned by spawn_discovery_process().
@@ -46,24 +48,26 @@ def _discovery_process(state, discovery_addr):
     log = get_main_logger().getChild("discovery")
     set_proc_title(current_process().name, log)
 
-    def create_response_string(state):
+    def create_response_string(state, mpm_device):
         """Generate the string that gets sent back to the requester.
 
         Uses state to generate a human-readable string that describes the
         device.
         :param state: The shared state of the device.
         """
-        return RESPONSE_SEP.join(
+        response_info = (
             [RESPONSE_PREAMBLE]
             + [b"type=" + state.dev_type.value]
             + [b"product=" + state.dev_product.value]
             + [b"serial=" + state.dev_serial.value]
             + [b"name=" + state.dev_name.value]
             + [b"fpga=" + state.dev_fpga_type.value]
-            + [b"locked_fpga=" + state.dev_locked_fpga.value]
             + [b"rpc_version=" + RPC_VERSION]
             + [RESPONSE_CLAIMED_KEY + to_binary_str("={}".format(state.claim_status.value))]
         )
+        if mpm_device == "x4xx":
+            response_info += [b"locked_fpga=" + state.dev_locked_fpga.value]
+        return RESPONSE_SEP.join(response_info)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # FIXME really, we should only bind to the subnet but I haven't gotten that
@@ -85,7 +89,7 @@ def _discovery_process(state, discovery_addr):
                 continue
             if data.strip(b"\0") == b"MPM-DISC":
                 log.debug("Sending discovery response to %s port: %d", sender[0], sender[1])
-                resp_str = create_response_string(state)
+                resp_str = create_response_string(state, mpm_device)
                 send_data = resp_str
                 log.trace("Return data: %s", send_data)
                 sock.sendto(send_data, sender)
