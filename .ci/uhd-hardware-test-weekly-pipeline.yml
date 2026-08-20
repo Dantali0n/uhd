@@ -77,11 +77,6 @@ resources:
     endpoint: EttusResearch
     name: EttusResearch/ettus-rts
     ref: master
-  - repository: hwtools
-    type: git
-    ref: refs/tags/pip/hwsetup/0.1/0.1.3
-    name: DevCentral/hwtools
-
 stages:
 - stage: test_uhd_devtest_stage
   displayName: Test UHD Devtest
