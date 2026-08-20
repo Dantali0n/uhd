@@ -170,7 +170,9 @@ Confirm that expected packaging artifacts are present:
 
 \subsection b3xx_kernel_linux_jetson Jetson AGX Orin
 
-This section targets L4T 36.4.4 / JetPack 6.x.
+This section targets Jetson Linux 39.2.1 / JetPack 7.2.1 (Ubuntu 24.04,
+kernel 6.8). The commands use its native source layout, where the kernel tree
+is `kernel/kernel-noble/`.
 
 On Jetson AGX Orin, the B310 software path requires Linux DMA-BUF heap support.
 In particular, `/dev/dma_heap/system` must be available. If this device node is
@@ -195,47 +197,47 @@ Confirm the target release on the Jetson host:
 \subsubsection b3xx_kernel_linux_jetson_dmabuf Enable DMA-BUF heap support
 
 NVIDIA kernel customization reference:
-<a href="https://docs.nvidia.com/jetson/archives/r36.4.4/DeveloperGuide/SD/Kernel/KernelCustomization.html">Jetson Linux Kernel Customization</a>
+<a href="https://docs.nvidia.com/jetson/archives/r39.2.1/DeveloperGuide/SD/Kernel/KernelCustomization.html">Jetson Linux Kernel Customization</a>
 
 The procedure below builds the kernel natively on the Jetson and installs it on
 that same device. A cross-compiled kernel must instead be installed through the
 Jetson Linux `Linux_for_Tegra` flashing workflow; do not run the `/boot` copy or
 `modules_install` commands below on the cross-build host.
 
-Build environment setup and source checkout:
+Build environment setup:
 
     sudo apt update
     sudo apt install -y git build-essential bc flex bison libssl-dev zstd
 
 Download and extract the Jetson Linux release package and public sources for the
-target L4T release from the
+target release from the
 <a href="https://developer.nvidia.com/embedded/jetson-linux-archive">Jetson Linux archive</a>.
 The release must match the version reported by `cat /etc/nv_tegra_release`.
 In the commands below, `<install-path>` is a directory on the Jetson, for
-example `~/jetson_linux`.
-For L4T 36.4.4, use the Jetson Linux 36.4.4 package and its corresponding
-release tag. Then sync the kernel sources:
+example `~/jetson_linux`, and `<public-sources-path>` is the path to the
+downloaded archive, for example `~/Downloads/public_sources.tbz2`.
 
-    cd <install-path>/Linux_for_Tegra/source
-    ./source_sync.sh -k -t <release-tag>
-    export ARCH=arm64
-    export LOCALVERSION=-tegra
-    make -C kernel tegra_defconfig
+For Jetson Linux 39.2.1, download
+<a href="https://developer.nvidia.com/downloads/embedded/L4T/r39_Release_v2.1/sources/public_sources.tbz2">Driver Package (BSP) Sources</a>
+(`public_sources.tbz2`).
 
-If Git source synchronization is unavailable, download `public_sources.tbz2`
-from the same archive and extract the matching source archives instead:
+Extract the public sources, then extract the matching source archives from its
+`Linux_for_Tegra/source/` directory:
 
+    tar xf <public-sources-path> -C <install-path>
     cd <install-path>/Linux_for_Tegra/source
     tar xf kernel_src.tbz2
     tar xf kernel_oot_modules_src.tbz2
     tar xf nvidia_kernel_display_driver_source.tbz2
+
+This release package does not include `source_sync.sh`; use the public-source
+archives instead. Seed the new kernel configuration from the running kernel:
+
+    zcat /proc/config.gz > kernel/kernel-noble/.config
+    cd kernel/kernel-noble
     export ARCH=arm64
     export LOCALVERSION=-tegra
-    make -C kernel tegra_defconfig
-
-Open kernel configuration:
-
-    make -C kernel menuconfig
+    make olddefconfig
 
 Enable these options as built-ins (`=y`):
 
@@ -244,17 +246,65 @@ Enable these options as built-ins (`=y`):
     CONFIG_DMABUF_HEAPS_SYSTEM=y
     CONFIG_SYNC_FILE=y
 
-Build and install:
+Apply the configuration and resolve its dependencies:
 
-    make -C kernel -j$(nproc)
-    sudo make -C kernel modules_install
-    sudo cp /boot/Image /boot/Image.backup
-    sudo cp kernel/kernel-jammy-src/arch/arm64/boot/Image /boot/Image
-    sudo depmod -a
-    sudo update-initramfs -u
-    sudo reboot
+    scripts/config --enable DMA_SHARED_BUFFER
+    scripts/config --enable DMABUF_HEAPS
+    scripts/config --enable DMABUF_HEAPS_SYSTEM
+    scripts/config --enable SYNC_FILE
+    make olddefconfig
+
+Build the kernel and its in-tree modules. The resulting release string is
+`6.8.12-tegra`, so installing the matching modules is required even when the
+running stock kernel is `6.8.12-1021-tegra`:
+
+    make -j$(nproc) Image
+    make -j$(nproc) modules
+    sudo -E make modules_install
+
+Build and install the NVIDIA out-of-tree modules against the same kernel tree:
+
+    cd <install-path>/Linux_for_Tegra/source
+    export ARCH=arm64
+    export LOCALVERSION=-tegra
+    export KERNEL_HEADERS=$PWD/kernel/kernel-noble
+    export kernel_name=noble
+    make -j$(nproc) modules
+    sudo -E make modules_install
+
+Stage the new image under a separate name, leaving the original boot image
+unchanged:
+
+    sudo cp <install-path>/Linux_for_Tegra/source/kernel/kernel-noble/arch/arm64/boot/Image \
+        /boot/Image.dmabuf
+
+No devicetree changes are required for DMA-BUF heaps, so the installed DTBs can
+be reused.
+
+Add a `dmabuf` entry to `/boot/extlinux/extlinux.conf`. Its `APPEND` value is
+system-specific; copy it from the existing `primary` entry:
+
+~~~
+LABEL dmabuf
+      MENU LABEL dmabuf-heaps kernel (6.8.12-tegra)
+      LINUX /boot/Image.dmabuf
+      INITRD /boot/initrd
+      APPEND <copy the APPEND value from the primary entry>
+~~~
+
+Leave `DEFAULT` set to `primary`. Reboot the Jetson, then select `dmabuf` from
+the boot menu to test the new kernel. After verification, it can instead be
+made the default by setting `DEFAULT dmabuf`. If the test kernel does not boot
+or essential peripherals fail, select `primary` to return to the original
+image.
 
 \subsubsection b3xx_kernel_linux_jetson_verify Verify DMA-BUF after reboot
+
+After booting the `dmabuf` entry, confirm the new kernel is active:
+
+    uname -r
+
+Expected: `6.8.12-tegra`.
 
 Check kernel config:
 
