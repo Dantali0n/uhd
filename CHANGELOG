@@ -11,19 +11,25 @@ Change Log for Releases
   - Migrated the MPM RPC transport layer from mprpc (msgpack-RPC) to gRPC/Protobuf,
     impacting all embedded devices running MPM.
 * New Features
+  - X420 and X440:
+    - The X420_X4_200, X420_CG_400, X420_X4_400 and X440_X4_200 FPGA images now use
+      fixed fabric resamplers (3x) and RFDC resamplers instead of RFDC resamplers alone.
+      This ensures repeatable phase offsets between devices and reboots. Note that
+      this feature is currently mutually exclusive with dual rate support, and it
+      increases the resource utilization. To revert to the previous image with
+      non-repeatable phase offsets, a custom image must be built.
+  - X420:
+    - Added support for the 400 MHz FPGA variants, including the X420_CG_400
+      and X420_X4_400 images.
   - X440:
-    - The X440_X4_200 image now uses fabric resamplers instead of RFDC
-      resamplers, which ensures repeatable phase offsets between devices and
-      reboots. Note that this feature is currently mutually exclusive with dual
-      rate support, and it increases the resource utilization. To revert to the
-      previous image with non-repeatable phase offsets, a custom image must be
-      built. By default, it is set to false (i.e., same as old behavior),
-      except for the X440_X4_200 image.
-    - A new BSP parameter (USE_FABRIC_RESAMPLERS) is introduced to toggle this
-      new feature.
-  - X4xx: The ref_locked sensor no longer queries the sticky bits; instead, it
-    only reports the current lock state. The ref_stable sensor is added to
-    include the sticky bits.
+    - Introduced a new BSP parameter (USE_FABRIC_RESAMPLERS) in the X4_200 image
+      to enable easy toggling between using fixed fabric resamplers (the new default)
+      and the previous behavior. The parameter is set to true (use fixed fabric
+      resamplers) in this image and is not available in other X440 FPGA images.
+  - X4xx: 
+    - The ref_locked sensor no longer queries the sticky bits; instead, it
+      only reports the current lock state. The ref_stable sensor is added to
+      include the sticky bits.
   - Python:
     - The ref_clk_calibration feature is now accessible in the Python API.
   - Streamers:
@@ -69,10 +75,6 @@ Change Log for Releases
         previous behavior.
   - MPM-based devices can now be initialized in parallel within a MultiUSRP
     session.
-  - X420:
-    - Added support for the 400 MHz FPGA variants, including the X420_CG_400
-      and X420_X4_400 images.
-    - Added fabric-resampler support to the X420 FPGA designs.
   - GPS:
     - Added support for UBLOX communication.
     - Improved compatibility with GPS receivers by accepting additional
@@ -100,8 +102,8 @@ Change Log for Releases
   - Some logging APIs that previously used boost::posix_time are now
     declared deprecated, and alternatives that use standard C++ constructs have
     been introduced.
-  - MPM device initialization is parallel by default. The serialize_init=1
-    device argument restores serial initialization.
+  - MPM device initialization is serial by default. The `init_threads=N`
+    device argument enables parallel initialization.
   - Added an option to resynchronize X4xx SPLL R-dividers after reference-lock
     loss using reset_spll_r_divider=1 in the synchronization arguments. This
     is intended for advanced users only.
@@ -485,8 +487,8 @@ Changes compared to UHD 4.9.0.0:
     - Add device DNA feature for X310, X410, X440. This allows reading back the
       FPGA's DNA, which is a unique identifier.
   - Embedded OS for E3xx, N3xx, and X4xx devices
-    - With the switch to Yocto 4.0 (kirkstone), the SD card and eMMC images no 
-      longer pre-populate the second system partition. Refer to the device 
+    - With the switch to Yocto 4.0 (kirkstone), the SD card and eMMC images no
+      longer pre-populate the second system partition. Refer to the device
       specific "Updating Filesystems" section in the user manual for how to populate it.
       This reduces the size of compressed .sdimg filesystem images.
   - X440

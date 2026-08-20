@@ -3,24 +3,31 @@ uhd (4.11.0.0-0ubuntu1) ubuntu_release; urgency=low
   * Highlights / Main Changes
     - Add support for the new USRP B310, a PCIe/Thunderbolt-based device which
       supports 2x2 RF channels at up to 100 MHz bandwidth per channel.
+    - Add support for X410, X420 and X440 variants with locked FPGA
     - Update underlying OE version on embedded devices to Scarthgap (5.0 LTS).
       Note that some of the MPM updates require this update.
     - Migrated the MPM RPC transport layer from mprpc (msgpack-RPC) to gRPC/Protobuf,
       impacting all embedded devices running MPM.
   * New Features
+    - X420 and X440:
+      - The X420_X4_200, X420_CG_400, X420_X4_400 and X440_X4_200 FPGA images now use
+        fixed fabric resamplers (3x) and RFDC resamplers instead of RFDC resamplers alone.
+        This ensures repeatable phase offsets between devices and reboots. Note that
+        this feature is currently mutually exclusive with dual rate support, and it
+        increases the resource utilization. To revert to the previous image with
+        non-repeatable phase offsets, a custom image must be built.
+    - X420:
+      - Added support for the 400 MHz FPGA variants, including the X420_CG_400
+        and X420_X4_400 images.
     - X440:
-      - The X440_X4_200 image now uses fabric resamplers instead of RFDC
-        resamplers, which ensures repeatable phase offsets between devices and
-        reboots. Note that this feature is currently mutually exclusive with dual
-        rate support, and it increases the resource utilization. To revert to the
-        previous image with non-repeatable phase offsets, a custom image must be
-        built. By default, it is set to false (i.e., same as old behavior),
-        except for the X440_X4_200 image.
-      - A new BSP parameter (USE_FABRIC_RESAMPLERS) is introduced to toggle this
-        new feature.
-    - X4xx: The ref_locked sensor no longer queries the sticky bits; instead, it
-      only reports the current lock state. The ref_stable sensor is added to
-      include the sticky bits.
+      - Introduced a new BSP parameter (USE_FABRIC_RESAMPLERS) in the X4_200 image
+        to enable easy toggling between using fixed fabric resamplers (the new default)
+        and the previous behavior. The parameter is set to true (use fixed fabric
+        resamplers) in this image and is not available in other X440 FPGA images.
+    - X4xx: 
+      - The ref_locked sensor no longer queries the sticky bits; instead, it
+        only reports the current lock state. The ref_stable sensor is added to
+        include the sticky bits.
     - Python:
       - The ref_clk_calibration feature is now accessible in the Python API.
     - Streamers:
@@ -45,12 +52,18 @@ uhd (4.11.0.0-0ubuntu1) ubuntu_release; urgency=low
           With this update, users can add the DDC and DUC blocks to their custom
           FPGA images for bandwidths up to 1600 MHz (2000 MSps).
       - Shipping FPGA images:
+        - Added new shipping FPGA images for x420:
+          - x420_X4_400
+          - x420_CG_400
         - Added DDC and DUC functionality for all channels to the following
           shipping FPGA images:
-          - x410_X4_400
           - x410_CG_400
+          - x420_X4_400
+          - x420_CG_400
           - x420_X4_1000
           - x420_CG_1000
+          - x440_X4_800
+          - x440_CG_800
           - x440_X4_1600
           - x440_CG_1600
           For custom designs based on one of these updated rfnoc_image_core.yml
@@ -60,10 +73,6 @@ uhd (4.11.0.0-0ubuntu1) ubuntu_release; urgency=low
           previous behavior.
     - MPM-based devices can now be initialized in parallel within a MultiUSRP
       session.
-    - X420:
-      - Added support for the 400 MHz FPGA variants, including the X420_CG_400
-        and X420_X4_400 images.
-      - Added fabric-resampler support to the X420 FPGA designs.
     - GPS:
       - Added support for UBLOX communication.
       - Improved compatibility with GPS receivers by accepting additional
@@ -91,8 +100,8 @@ uhd (4.11.0.0-0ubuntu1) ubuntu_release; urgency=low
     - Some logging APIs that previously used boost::posix_time are now
       declared deprecated, and alternatives that use standard C++ constructs have
       been introduced.
-    - MPM device initialization is parallel by default. The serialize_init=1
-      device argument restores serial initialization.
+    - MPM device initialization is serial by default. The `init_threads=N`
+      device argument enables parallel initialization.
     - Added an option to resynchronize X4xx SPLL R-dividers after reference-lock
       loss using reset_spll_r_divider=1 in the synchronization arguments. This
       is intended for advanced users only.
@@ -123,7 +132,7 @@ uhd (4.11.0.0-0ubuntu1) ubuntu_release; urgency=low
     - Windows: 10 22H2, 11 24H2
     - MacOS: Sequoia (15.7)
 
- -- Ettus Research <uhd.maintainer@emerson.com>  Wed, 12 Aug 2026 02:05:23 -0800
+ -- Ettus Research <uhd.maintainer@emerson.com>  Wed, 02 Sep 2026 05:54:06 -0800
 
 
 uhd (4.10.0.0-0ubuntu1) ubuntu_release; urgency=low
