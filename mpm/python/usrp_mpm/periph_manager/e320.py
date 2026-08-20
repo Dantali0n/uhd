@@ -647,7 +647,7 @@ class e320(ZynqComponents, PeriphManagerBase):
         if not self._hwmon_based_sensors:
             return_val = self._temp_fan_sensors.read_fan_sensor_value("Fan", "cur_state")
         else:
-            return_val = self._temp_fan_sensors.read_fan_sensor_value("fan1")
+            return_val = self._temp_fan_sensors.read_fan_sensor_value("fan0")
 
         return return_val
 
