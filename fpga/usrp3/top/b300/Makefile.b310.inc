@@ -104,13 +104,10 @@ bin: .prereqs
 	@echo "Printing VERILOG_DEFS:: $(VERILOG_DEFS)"
 	$(call BUILD_VIVADO_DESIGN,$(abspath ./build_b310.tcl),$(TOP_MODULE),$(ARCH),$(PART_ID))
 
-synth: .prereqs
-	$(call BUILD_VIVADO_DESIGN,$(TOOLS_DIR)/scripts/viv_synth.tcl,$(TOP_MODULE),$(ARCH),$(PART_ID))
-
 rtl: .prereqs
 	$(call CHECK_VIVADO_DESIGN,$(TOOLS_DIR)/scripts/viv_check_syntax.tcl,$(TOP_MODULE),$(ARCH),$(PART_ID))
 
 viv_ip: .prereqs $$(DESIGN_SRCS) ip
 	@echo "IP build for $(NAME) DONE . . ."
 
-.PHONY: bin synth rtl viv_ip
+.PHONY: bin rtl viv_ip
