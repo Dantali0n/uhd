@@ -245,9 +245,7 @@ public:
                     bar0_regmap_t::lmk_sync_ctrl_reg_t::SYNC_PIN_CLKIN0);
             }
         } else {
-            if (_clkin_sel == CLKin1) {
-                _10M_ext_ref = true;
-            }
+            _10M_ext_ref        = (_clkin_sel == CLKin1);
             _distributed_clocks = false;
             _output_divider     = 20;
             _sysref_div         = 640;
