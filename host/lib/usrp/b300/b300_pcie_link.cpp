@@ -75,12 +75,12 @@ b300_pcie_link::b300_pcie_link(b300_pcie_session::sptr session,
             % _link_params.send_frame_size % _link_params.num_send_frames
             % (_link_params.send_frame_size * _link_params.num_send_frames));
 
-    // --- DMA Register Configuration (like nirio_link) ---
-    // 1. Disable DMA streams in case last shutdown was unclean
-    _b300_session->poke32(
-        PCIE_TX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance), DMA_CTRL_DISABLED);
-    _b300_session->poke32(
-        PCIE_RX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance), DMA_CTRL_DISABLED);
+    // --- DMA Register Configuration ---
+    // 1. Disable and clear DMA streams in case last shutdown was unclean
+    _b300_session->poke32(PCIE_TX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance),
+        DMA_CTRL_DISABLED | DMA_CTRL_CLEAR_STB);
+    _b300_session->poke32(PCIE_RX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance),
+        DMA_CTRL_DISABLED | DMA_CTRL_CLEAR_STB);
 
     _wait_until_stream_ready();
 
@@ -92,12 +92,6 @@ b300_pcie_link::b300_pcie_link(b300_pcie_session::sptr session,
     _b300_session->poke32(PCIE_RX_DMA_REG(DMA_FRAME_SIZE_REG, _fifo_instance),
         static_cast<uint32_t>(_link_params.recv_frame_size / chdr_word_size));
 
-
-    // 3. Configure 64-bit word flipping and enable DMA streams
-    _b300_session->poke32(PCIE_TX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance),
-        DMA_CTRL_SW_BUF_U64 | DMA_CTRL_ENABLED);
-    _b300_session->poke32(PCIE_RX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance),
-        DMA_CTRL_SW_BUF_U64 | DMA_CTRL_ENABLED);
 
     // Create FIFOs
     _recv_fifo = _b300_session->create_rx_fifo(_fifo_instance);
@@ -117,6 +111,15 @@ b300_pcie_link::b300_pcie_link(b300_pcie_session::sptr session,
         // Start FIFOs
         _recv_fifo->start();
         _send_fifo->start();
+
+        // Flush stale RX data before enabling the DMA streams.
+        UHD_SAFE_CALL(_flush_rx_buff());
+
+        // 3. Configure 64-bit word flipping and enable DMA streams
+        _b300_session->poke32(PCIE_TX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance),
+            DMA_CTRL_SW_BUF_U64 | DMA_CTRL_ENABLED);
+        _b300_session->poke32(PCIE_RX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance),
+            DMA_CTRL_SW_BUF_U64 | DMA_CTRL_ENABLED);
     } else {
         throw uhd::runtime_error("Could not create B300 PCIe link!");
     }
@@ -151,11 +154,11 @@ b300_pcie_link::~b300_pcie_link()
             _release_cb(_fifo_instance);
         }
 
-        // --- Disable DMA streams (like nirio_link) ---
-        _b300_session->poke32(
-            PCIE_TX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance), DMA_CTRL_DISABLED);
-        _b300_session->poke32(
-            PCIE_RX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance), DMA_CTRL_DISABLED);
+        // --- Disable and clear DMA streams during link cleanup ---
+        _b300_session->poke32(PCIE_TX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance),
+            DMA_CTRL_DISABLED | DMA_CTRL_CLEAR_STB);
+        _b300_session->poke32(PCIE_RX_DMA_REG(DMA_CTRL_STATUS_REG, _fifo_instance),
+            DMA_CTRL_DISABLED | DMA_CTRL_CLEAR_STB);
 
         // Flush any pending buffers
         UHD_SAFE_CALL(_flush_rx_buff());
@@ -384,25 +387,48 @@ adapter_id_t b300_pcie_link::get_recv_adapter_id() const
  *****************************************************************************/
 void b300_pcie_link::_flush_rx_buff()
 {
-    // Acquire is called with 0 elements requested first to
-    // get the number of elements in the buffer and then
-    // repeatedly with the number of remaining elements
-    // until the buffer is empty
-    for (size_t num_elems_requested = 0, num_elems_remaining = 1; num_elems_remaining;
-         num_elems_requested = num_elems_remaining) {
-        uint64_t* elems_buffer = nullptr;
+    // Poll the RX FIFO until it has remained empty for a quiet period.
+    constexpr auto quiet_poll_interval = std::chrono::milliseconds(1);
+    constexpr auto quiet_period        = std::chrono::milliseconds(20);
+    constexpr auto flush_timeout       = std::chrono::milliseconds(1000);
+
+    size_t num_elems_remaining = 0;
+    const auto flush_deadline  = std::chrono::steady_clock::now() + flush_timeout;
+    auto quiet_deadline        = std::chrono::steady_clock::time_point{};
+    bool quiet_period_started  = false;
+
+    while (std::chrono::steady_clock::now() < flush_deadline) {
+        const size_t num_elems_requested = num_elems_remaining;
+        uint64_t* elems_buffer           = nullptr;
         try {
             auto result         = _recv_fifo->acquire(elems_buffer,
                 num_elems_requested,
                 0); // timeout
             num_elems_remaining = result.elements_remaining;
             _recv_fifo->release(result.elements_acquired);
+
+            if (num_elems_remaining) {
+                quiet_period_started = false;
+            } else {
+                const auto now = std::chrono::steady_clock::now();
+                if (!quiet_period_started) {
+                    quiet_deadline       = now + quiet_period;
+                    quiet_period_started = true;
+                } else if (now >= quiet_deadline) {
+                    return;
+                }
+                std::this_thread::sleep_for(quiet_poll_interval);
+            }
         } catch (const std::exception& ex) {
             UHD_LOG_WARNING(
                 "B300", "B300 PCIe data transfer failed during flush: " << ex.what());
-            break;
+            return;
         }
     }
+
+    UHD_LOG_WARNING("B300",
+        "Timed out flushing RX FIFO for channel " << _fifo_instance << " after "
+                                                  << flush_timeout.count() << " ms");
 }
 
 void b300_pcie_link::_wait_until_stream_ready()
