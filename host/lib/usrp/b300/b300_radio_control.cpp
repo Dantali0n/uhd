@@ -157,6 +157,8 @@ b300_radio_control_impl::b300_radio_control_impl(make_args_ptr make_args)
     // Power down the LMK SYSREF since it is no longer needed and can cause RF spurs
     // during operation.
     _clock_ctrl->power_down_lmk04832_sysref();
+
+    _mb_control->set_radio_initialized(true);
 }
 
 size_t b300_radio_control_impl::get_chan_from_dboard_fe(

@@ -39,6 +39,7 @@ b300_mb_controller::b300_mb_controller(b300_clock_ctrl::sptr clock_ctrl,
     , _pcie_neg_speed_gtps(0.0)
     , _pcie_max_width(0)
     , _pcie_neg_width(0)
+    , _radio_initialized(false)
 {
     const auto decode_speed_gtps = [](uint32_t code) {
         switch (code) {
@@ -291,6 +292,16 @@ std::vector<std::string> b300_mb_controller::get_clock_sources() const
 void b300_mb_controller::set_sync_source(
     const std::string& clock_source, const std::string& time_source)
 {
+    // If the clocking is changed after the ADRV9032 has been initialized, the signal is
+    // completely gone. If we want to support this in the future, we will likely need to
+    // reset or reinitialize some pieces of the ADRV9032, such as the JESD and clocking.
+    if (_radio_initialized
+        && (clock_source != _current_clock_source
+            || time_source != _current_time_source)) {
+        throw uhd::runtime_error(
+            "Cannot change clock or time source after radio has been initialized. Please "
+            "set clock and time source via device arguments during initialization.");
+    }
     auto valid_sync_sources = get_sync_sources();
     std::pair<std::string, std::string> source_pair{clock_source, time_source};
     if (std::find_if(valid_sync_sources.cbegin(),
@@ -739,6 +750,11 @@ void b300_mb_controller::finish_multi_device_sync()
 {
     _b300_clock_ctrl->finish_lmk04832_sync();
     get_timekeeper(0)->set_time_next_pps(uhd::time_spec_t(0.0));
+}
+
+void b300_mb_controller::set_radio_initialized(const bool initialized)
+{
+    _radio_initialized = initialized;
 }
 
 }} // namespace uhd::rfnoc

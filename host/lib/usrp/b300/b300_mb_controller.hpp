@@ -103,6 +103,7 @@ public:
     void setup_multi_device_sync();
     void configure_lmk_for_sync();
     void finish_multi_device_sync();
+    void set_radio_initialized(const bool initialized);
 
 private:
     uhd::soft_reg_field_t _get_gpio_field(size_t index);
@@ -123,6 +124,7 @@ private:
     // PCIe link widths expressed as lane counts (e.g., 1, 4, 8 for x1/x4/x8).
     uint16_t _pcie_max_width;
     uint16_t _pcie_neg_width;
+    bool _radio_initialized;
 };
 
 }} // namespace uhd::rfnoc
