@@ -60,15 +60,6 @@ def parse_args():
         help="Array of channel numbers separated by space (default: [0])",
     )
     parser.add_argument(
-        "--rj45",
-        action="store_true",
-        help=(
-            "Enable this option if the provided USRP address is associated to the RJ45 "
-            "(1G Ethernet) connection to avoid streaming errors. "
-            "Leave disabled when using 10G or 100G Ethernet connections. (default: False)"
-        ),
-    )
-    parser.add_argument(
         "-lc",
         "--lo-channel",
         type=int,

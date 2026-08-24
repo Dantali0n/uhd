@@ -82,8 +82,7 @@ different than the default master clock rate.
 
 It is recommended to perform the corrections using a 10 or 100 GbE connection between USRP and host computer to minimize
 the measurement time. If that is not possible, the corrections can still be executed using
-the 1 GbE connection, too, but the additional --rj45 parameter must be
-added to disable optimizations that are specific to higher-speed connections.
+the 1 GbE connection, too.
 
 \subsection calibration_data Calibration Data
 

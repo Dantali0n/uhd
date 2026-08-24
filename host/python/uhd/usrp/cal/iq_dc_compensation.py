@@ -428,8 +428,6 @@ class HBXCompensator:
         self._meas_rx = {}
         self._cal_data = None
         self._waveform_regions = None
-        # Save if RJ45 connection is used (through ARM processor)
-        self._rj45 = args.rj45
         # LO Radio Channel Pair in case an external LO is used
         self._lo_rcp = None
         # Create a map of channels to DB serials. It'll be filled as we go.
@@ -906,12 +904,7 @@ class HBXCompensator:
         tx_port = tx.replay_ports[0]
         tx.replay_blocks[0].config_play(waveform_mem_region[0], waveform_mem_region[1], tx_port)
         tx.replay_blocks[0].issue_stream_cmd(stream_cmd_tx, tx_port)
-        # Follow mode cannot be used when connection via the ARM processor (RJ45) is used.
-        if self._rj45:
-            rx.wait_for_buffer_complete(stream_cmd_rx)
-            rx.download(rx_waveform, follow_mode=False)
-        else:
-            rx.download(rx_waveform, follow_mode=True)
+        rx.download(rx_waveform, follow_mode=True)
 
     def _measure_iq_rx(self, txs, rxs, freq, channels, waveform_mem_region):
         for ch in channels:
@@ -1087,12 +1080,7 @@ class HBXCompensator:
         stream_cmd_rx.num_samps = len(rx_waveform)
         stream_cmd_rx.stream_now = True
         rx.issue_stream_cmd(stream_cmd_rx, wait_for_buffer_complete=False)
-        # Follow mode cannot be used when connection via the ARM processor (RJ45) is used.
-        if self._rj45:
-            rx.wait_for_buffer_complete(stream_cmd_rx)
-            rx.download(rx_waveform, follow_mode=False)
-        else:
-            rx.download(rx_waveform, follow_mode=True)
+        rx.download(rx_waveform, follow_mode=True)
 
     def _measure_dc_rx(self, rxs, channels):
         for ch in channels:
