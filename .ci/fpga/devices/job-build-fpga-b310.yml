@@ -94,7 +94,7 @@ stages:
       id: b310
       device_name: B310
       ip_target: B310_IP
-      package_name: b310_fpga_default
+      package_name: b3xx_b310_fpga_default
       clean_ip_build: ${{ parameters.clean_ip_build }}
       num_ip_jobs: ${{ parameters.num_ip_jobs }}
       publish_int_files: ${{ parameters.publish_int_files }}
