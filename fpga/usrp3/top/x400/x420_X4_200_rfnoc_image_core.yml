@@ -26,8 +26,8 @@ parameters:
 stream_endpoints:
   ep0:                                  # Stream endpoint name
     ctrl: True                          # Endpoint passes control traffic
-    data: True                          # Endpoint passes data traffic
-    buff_size_bytes: 131072             # Ingress buffer size for data
+    data: False                         # Endpoint has no data interface
+    buff_size_bytes: 0                  # Ingress buffer size for data
   ep1:
     ctrl: False
     data: True
@@ -40,6 +40,10 @@ stream_endpoints:
     ctrl: False
     data: True
     buff_size_bytes: 131072
+  ep4:
+    ctrl: False
+    data: True
+    buff_size_bytes: 131072
 
 # A table of which crossbar routes to include
 # -------------------------------------------
@@ -47,16 +51,17 @@ stream_endpoints:
 # Entering a 1 includes and a 0 removes that route from the crossbar.
 crossbar_routes:
   #  eth0  eth2  dma   ep1   ep3
-  #     eth1  eth3  ep0   ep2
-  - [ 1, 0, 0, 0, 0, 1, 1, 1, 1 ] # eth0 (QSFP Port 0, Lane 0)
-  - [ 0, 1, 0, 0, 0, 1, 1, 1, 1 ] # eth1 (QSFP Port 0, Lane 1)
-  - [ 0, 0, 1, 0, 0, 1, 1, 1, 1 ] # eth2 (QSFP Port 0, Lane 2)
-  - [ 0, 0, 0, 1, 0, 1, 1, 1, 1 ] # eth3 (QSFP Port 0, Lane 3)
-  - [ 0, 0, 0, 0, 1, 1, 1, 1, 1 ] # dma
-  - [ 1, 1, 1, 1, 1, 0, 0, 1, 1 ] # ep0  (radio0.0)
-  - [ 1, 1, 1, 1, 1, 0, 0, 1, 1 ] # ep1  (radio1.0)
-  - [ 1, 1, 1, 1, 1, 1, 1, 0, 0 ] # ep2  (replay0.0)
-  - [ 1, 1, 1, 1, 1, 1, 1, 0, 0 ] # ep3  (replay1.0)
+  #     eth1  eth3  ep0   ep2   ep4
+  - [ 1, 0, 0, 0, 0, 1, 1, 1, 1, 1 ] # eth0 (QSFP Port 0, Lane 0)
+  - [ 0, 1, 0, 0, 0, 1, 1, 1, 1, 1 ] # eth1 (QSFP Port 0, Lane 1)
+  - [ 0, 0, 1, 0, 0, 1, 1, 1, 1, 1 ] # eth2 (QSFP Port 0, Lane 2)
+  - [ 0, 0, 0, 1, 0, 1, 1, 1, 1, 1 ] # eth3 (QSFP Port 0, Lane 3)
+  - [ 0, 0, 0, 0, 1, 1, 1, 1, 1, 1 ] # dma
+  - [ 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 ] # ep0  (control only)
+  - [ 1, 1, 1, 1, 1, 0, 0, 0, 1, 1 ] # ep1  (radio0.0)
+  - [ 1, 1, 1, 1, 1, 0, 0, 0, 1, 1 ] # ep2  (radio1.0)
+  - [ 1, 1, 1, 1, 1, 0, 1, 1, 0, 0 ] # ep3  (replay0.0)
+  - [ 1, 1, 1, 1, 1, 0, 1, 1, 0, 0 ] # ep4  (replay1.0)
 
 # A list of all NoC blocks in design
 # ----------------------------------
@@ -112,24 +117,24 @@ noc_blocks:
 #
 connections:
   # RF A:0 TX
-  - { srcblk: ep0,    srcport: out0,  dstblk: duc0,   dstport: in_0 }
+  - { srcblk: ep1,    srcport: out0,  dstblk: duc0,   dstport: in_0 }
   - { srcblk: duc0,   srcport: out_0, dstblk: radio0, dstport: in_0 }
   # RF A:0 RX
   - { srcblk: radio0, srcport: out_0, dstblk: ddc0,   dstport: in_0  }
-  - { srcblk: ddc0,   srcport: out_0, dstblk: ep0,    dstport: in0  }
+  - { srcblk: ddc0,   srcport: out_0, dstblk: ep1,    dstport: in0  }
   #
   # RF B:0 TX
-  - { srcblk: ep1,    srcport: out0,  dstblk: duc1,   dstport: in_0 }
+  - { srcblk: ep2,    srcport: out0,  dstblk: duc1,   dstport: in_0 }
   - { srcblk: duc1,   srcport: out_0, dstblk: radio1, dstport: in_0 }
   # RF B:0 RX
   - { srcblk: radio1, srcport: out_0, dstblk: ddc1,   dstport: in_0  }
-  - { srcblk: ddc1,   srcport: out_0, dstblk: ep1,    dstport: in0  }
+  - { srcblk: ddc1,   srcport: out_0, dstblk: ep2,    dstport: in0  }
   #
   # Replay Connections
-  - { srcblk: ep2,     srcport: out0,  dstblk: replay0, dstport: in_0 }
-  - { srcblk: replay0, srcport: out_0, dstblk: ep2,     dstport: in0  }
-  - { srcblk: ep3,     srcport: out0,  dstblk: replay1, dstport: in_0 }
-  - { srcblk: replay1, srcport: out_0, dstblk: ep3,     dstport: in0  }
+  - { srcblk: ep3,     srcport: out0,  dstblk: replay0, dstport: in_0 }
+  - { srcblk: replay0, srcport: out_0, dstblk: ep3,     dstport: in0  }
+  - { srcblk: ep4,     srcport: out0,  dstblk: replay1, dstport: in_0 }
+  - { srcblk: replay1, srcport: out_0, dstblk: ep4,     dstport: in0  }
   #
   # BSP Connections
   - { srcblk: replay0,  srcport: axi_ram,  dstblk: _device_, dstport: dram0 }
