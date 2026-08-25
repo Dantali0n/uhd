@@ -26,20 +26,82 @@ package cic_filter_test_pkg;
   import cic_test_pkg::*;
   import cic_comb_filter_test_pkg::*;
 
+  // Model the final signed CIC output quantization performed by
+  // cic_barrel_shift. The CIC stages remain at full accumulator precision.
+  class cic_filter_quantizer #(
+    int ACCUM_W = 96,
+    int SAMP_W  = 32
+  );
+
+    localparam int ACCUM_COMP_W = ACCUM_W / 2;
+    localparam int SAMP_COMP_W  = SAMP_W / 2;
+    localparam logic [SAMP_COMP_W-1:0] MAX_OUTPUT =
+      {1'b0, {(SAMP_COMP_W-1){1'b1}}};
+    localparam logic [SAMP_COMP_W-1:0] MIN_OUTPUT =
+      {1'b1, {(SAMP_COMP_W-1){1'b0}}};
+
+    typedef logic signed [ACCUM_COMP_W-1:0] accum_comp_t;
+    typedef logic signed [SAMP_COMP_W-1:0]  samp_comp_t;
+
+    // Round-half-up expressed as an addition of half an LSB before the shift,
+    // deliberately formulated differently from the RTL so that a conceptual
+    // error in cic_barrel_shift is not mirrored by this reference model. The
+    // RTL clips instead of wrapping, which only matters when the shifted
+    // result does not fit in SAMP_COMP_W bits.
+    static function automatic samp_comp_t round_shift_component(
+      input accum_comp_t comp_in,
+      input int          shift_amount
+    );
+      accum_comp_t rounded;
+
+      if (shift_amount > 0) begin
+        rounded = (comp_in + (accum_comp_t'(1) << (shift_amount-1))) >>>
+                  shift_amount;
+      end else begin
+        rounded = comp_in;
+      end
+
+      if (rounded > accum_comp_t'(signed'(MAX_OUTPUT))) begin
+        return samp_comp_t'(MAX_OUTPUT);
+      end
+      if (rounded < accum_comp_t'(signed'(MIN_OUTPUT))) begin
+        return samp_comp_t'(MIN_OUTPUT);
+      end
+      return samp_comp_t'(rounded[SAMP_COMP_W-1:0]);
+    endfunction : round_shift_component
+
+    static function automatic logic [SAMP_W-1:0] round_shift_sample(
+      input logic [ACCUM_W-1:0] sample_in,
+      input int                 shift_amount
+    );
+      accum_comp_t q_in;
+      accum_comp_t i_in;
+      samp_comp_t q_out;
+      samp_comp_t i_out;
+
+      q_in = sample_in[ACCUM_COMP_W-1:0];
+      i_in = sample_in[ACCUM_W-1:ACCUM_COMP_W];
+      q_out = round_shift_component(q_in, shift_amount);
+      i_out = round_shift_component(i_in, shift_amount);
+      return {i_out, q_out};
+    endfunction : round_shift_sample
+
+  endclass : cic_filter_quantizer
+
   //---------------------------------------------------------------------------
   // Bit-true simulation model of a full Nth-order CIC decimation filter.
   //
   // Chains ORDER integrators -> decimate by R -> ORDER combs (D=1),
   // processing one sample at a time (SPC-agnostic). All stages operate at
-  // ACCUM_W width with modular (wrapping) two's complement arithmetic,
-  // matching the RTL which performs no internal clipping or rounding.
+  // ACCUM_W width with modular (wrapping) two's complement arithmetic. The
+  // returned samples remain at ACCUM_W precision; use cic_filter_quantizer
+  // for the final rounded output conversion.
   //
   // State is created fresh on each call to process() (zero initial
   // conditions), so there is no need to explicitly clear between runs.
   //---------------------------------------------------------------------------
   class cic_filter_decim_model #(
     int ACCUM_W = 96,
-    int COMP_W  = 16,
     int ORDER   = 4
   );
 
@@ -111,15 +173,14 @@ package cic_filter_test_pkg;
   // Chains ORDER combs (D=1, input rate) -> upsample by R -> ORDER integrators
   // (full output rate), processing one sample at a time (SPC-agnostic). All
   // stages operate at ACCUM_W width with modular (wrapping) two's complement
-  // arithmetic, matching the RTL which performs no internal clipping or
-  // rounding.
+  // arithmetic. The returned samples remain at ACCUM_W precision; use
+  // cic_filter_quantizer for the final rounded output conversion.
   //
   // State is created fresh on each call to process() (zero initial
   // conditions), so there is no need to explicitly clear between runs.
   //---------------------------------------------------------------------------
   class cic_filter_interp_model #(
     int ACCUM_W = 96,
-    int COMP_W  = 16,
     int ORDER   = 4
   );
 

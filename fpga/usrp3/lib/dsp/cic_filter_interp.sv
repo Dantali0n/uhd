@@ -51,8 +51,8 @@
 //
 //   Internally, all stages operate at ACCUM_W bits, which is automatically
 //   computed to accommodate the full CIC bit growth of N*log2(R_max*D_max).
-//   No internal clipping or rounding is performed. The output is normalized
-//   back to SAMP_W at the output.
+//   Internal stages do not clip or round. The output is normalized back to
+//   SAMP_W with signed round-to-nearest quantization.
 //
 //   The interpolation factor may be changed at runtime by asserting
 //   config_changed for one clock cycle. Configuration must only be changed

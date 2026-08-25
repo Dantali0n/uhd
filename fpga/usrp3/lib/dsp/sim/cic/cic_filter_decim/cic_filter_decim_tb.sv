@@ -87,6 +87,10 @@ module cic_filter_decim_tb #(
     .SPC   (1),
     .SAMP_W(ACCUM_W)
   ) model_util_c;
+  typedef cic_filter_quantizer #(
+    .ACCUM_W(ACCUM_W),
+    .SAMP_W (SAMP_W)
+  ) quantizer_c;
 
   typedef util_c::sample_t            sample_t;
   typedef util_c::comp_t              comp_t;
@@ -159,7 +163,6 @@ module cic_filter_decim_tb #(
    // Reference model (operates at ACCUM_W precision)
     cic_filter_decim_model #(
       .ACCUM_W(ACCUM_W),
-      .COMP_W (MODEL_COMP_W),
       .ORDER  (ORDER)
     ) model = new();
 
@@ -188,23 +191,13 @@ module cic_filter_decim_tb #(
   //---------------------------------------------------------------------------
   // shift_sample: normalize an ACCUM_W model output sample to SAMP_W
   //
-  // Matches the DUT's barrel shifter behavior. Arithmetic-right-shifts each
-  // MODEL_COMP_W-bit component by ceil(log2((R*MAX_DELAY)^ORDER)) bits, then
-  // extracts the lower COMP_W bits as the output.
+  // Matches the DUT's barrel shifter behavior, including signed rounding.
+  // Arithmetic-right-shifts each MODEL_COMP_W-bit component by
+  // ceil(log2((R*MAX_DELAY)^ORDER)) bits, then quantizes it.
   //---------------------------------------------------------------------------
   function automatic sample_t shift_sample(model_sample_t samp_in, int R);
-    logic signed [MODEL_COMP_W-1:0] q_in = samp_in[MODEL_COMP_W-1:0];
-    logic signed [MODEL_COMP_W-1:0] i_in = samp_in[ACCUM_W-1:MODEL_COMP_W];
     int shift_amount = $clog2(longint'(R) ** ORDER);
-    logic signed [MODEL_COMP_W-1:0] q_shifted, i_shifted;
-    logic signed [COMP_W-1:0] q_out, i_out;
-
-    q_shifted = q_in >>> shift_amount;
-    i_shifted = i_in >>> shift_amount;
-    q_out = q_shifted[COMP_W-1:0];
-    i_out = i_shifted[COMP_W-1:0];
-
-    return {i_out, q_out};
+    return quantizer_c::round_shift_sample(samp_in, shift_amount);
   endfunction : shift_sample
 
   //---------------------------------------------------------------------------

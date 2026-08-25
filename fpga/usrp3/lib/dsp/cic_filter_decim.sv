@@ -51,8 +51,9 @@
 //   ORDER comb stages (y[n] = x[n] - x[n-D]) operate at the decimated rate.
 //
 //   All stages use the same SAMP_W, which must be pre-sized to accommodate
-//   the full CIC bit growth of N*log2(R_max*D_max) (no internal clipping or
-//   rounding is performed).
+//   the full CIC bit growth of N*log2(R_max*D_max). Internal stages do not
+//   clip or round; the final rate-dependent output conversion rounds before
+//   reducing the result to SAMP_W.
 //
 //   The decimation factor may be changed at runtime by asserting
 //   config_changed for one clock cycle. Configuration must only be changed
