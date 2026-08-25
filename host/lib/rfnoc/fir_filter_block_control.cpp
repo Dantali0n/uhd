@@ -162,7 +162,6 @@ private:
         const size_t num_coeffs = coeffs.size();
 
         // Write coefficients. The order depends on _coeff_load_backwards.
-        const std::vector<uint32_t> coeffs_addr(num_coeffs - 1, REG_FIR_LOAD_COEFF_ADDR);
         // Here we store all coefficients except the last one (which goes to a
         // different address), converted to 32-bits for easy poking.
         std::vector<uint32_t> coeffs_minus_last(num_coeffs - 1);
@@ -180,7 +179,8 @@ private:
                 [](int16_t value) -> uint32_t { return static_cast<uint32_t>(value); });
         }
 
-        _fir_filter_reg_iface.multi_poke32(coeffs_addr, coeffs_minus_last, chan);
+        _fir_filter_reg_iface.burst_poke32(
+            REG_FIR_LOAD_COEFF_ADDR, coeffs_minus_last, chan);
         // ...and the final coefficient (num_coeffs-1)
         _fir_filter_reg_iface.poke32(
             REG_FIR_LOAD_COEFF_LAST_ADDR, static_cast<uint32_t>(last_coeff), chan);
