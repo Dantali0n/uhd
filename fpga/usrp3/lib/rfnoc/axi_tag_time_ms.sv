@@ -320,6 +320,12 @@ module axi_tag_time_ms
           lookahead           <= 1'b0;
         end
       end else fifo_time_threshold <= '1;
+      if (cmd_write_en) begin
+        // On a pop both signals still describe the outgoing command, so they
+        // must be invalidated before the next command becomes the FIFO head.
+        lookahead           <= 1'b0;
+        fifo_time_threshold <= '1;
+      end
     end
   end
 
