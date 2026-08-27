@@ -37,7 +37,7 @@ The B310 has three variants: PCIe, OEM PCIe, and Enclosed Thunderbolt™.
 \image html b310_oem.png "Ettus USRP B310 OEM PCIe" width=15%
 \image html b310_thunderbolt.png "Ettus USRP B310 Enclosed Thunderbolt™" width=25%
 
-The Ettus USRP B310 is a B-Series USRP. All three variants utilize the same ADRV9032R transceiver as well as the same clocking circuitry. The PCIe variant is a superset of the OEM variant, including a PCIe front panel bracket and attached heatsink. Apart from the different mechanical enclosure, 
+The Ettus USRP B310 is a B-Series USRP. All three variants utilize the same ADRV9032R transceiver as well as the same clocking circuitry. The PCIe variant is a superset of the OEM variant, including a PCIe front panel bracket and attached heatsink. Apart from the different mechanical enclosure,
 the Thunderbolt™ variant differs only by the added Thunderbolt™ circuitry to connect the module over Thunderbolt™ rather than PCIe card edge. The other pieces of the board are equivalent. The software support within UHD is the same for all three variants.
 
 \subsection b3xx_overview_panels Front and Back Panels
@@ -125,7 +125,7 @@ Upon first use, update the FPGA image to the version of UHD you are utilizing to
 \subsubsection b3xx_fpga_flavors FPGA Image Flavors
 
 The B310 has two FPGA images that are shipped with UHD. The default FPGA, replay, has a RFNoC Replay block that can be used as with other RFNoC devices.
-The other FPGA, fifo, instead utilizes the DRAM as a buffer for improved streaming performance for the Thunderbolt variant.
+The other FPGA, fifo, instead utilizes the DRAM as a buffer for improved streaming performance for the Thunderbolt™ variant.
 
 To load a specific FPGA flavor, add the fpga device argument to the uhd_image_loader utility:
 
@@ -202,7 +202,7 @@ Valid clock/time source combinations:
 | `sync`         | `sync`                |
 | `sync_gpsdo`   | `sync_gpsdo`          |
 
-If the external reference clock is not 10 MHz, provide the `system_ref_rate` device arg. 
+If the external reference clock is not 10 MHz, provide the `system_ref_rate` device arg.
 If using the sync, or sync_gpsdo clock source, you do not need to provide the `system_ref_rate` device arg, since it will be the rate of the `master_clock_rate`
 
 To use an external reference:
@@ -383,6 +383,176 @@ The following sensors are available and can be queried through the UHD API:
 - **lo_locked** - RF local oscillator locked
 - **temp_rfic** - temperature of the RFIC, in degrees Celsius
 
+\section b3xx_streaming Host-USRP Streaming
+
+The B310 can stream up to two receive and two transmit channels through its
+PCIe or Thunderbolt™ host interface. The maximum sustainable rate depends on
+the PCIe link, transport path, operating system, FPGA image, and host CPU
+configuration.
+
+Unless stated otherwise, all streaming results in this section were obtained
+using the default `replay` FPGA bitfile.
+
+Executing `benchmark_rate` over multiple iterations and extended continuous
+periods without data loss resulted in the following maximum rates and channel
+counts. Maximum performance was achieved with the following settings:
+
+- The `--multi_streamer` argument for multi-channel benchmarks. This assigns a
+    separate streamer thread to each channel being streamed.
+
+\subsection b3xx_streaming_desktop Desktop Linux
+
+\subsubsection b3xx_desktop_recommended Recommended Desktop Host PC
+
+- At least 8 logical CPUs
+- At least 32 GB RAM
+- Ubuntu 22.04 or newer
+- Linux kernel version 6.2 or newer with matching kernel headers
+- PCIe Gen2 x4 slot or a slot with greater electrical capability
+
+Verify the negotiated link using the
+`pcie_negotiated_speed` and `pcie_negotiated_width` sensors, and compare them
+with `pcie_max_speed` and `pcie_max_width`. The `usrp_list_sensors` application
+can be used to list these and other B310 sensors:
+
+    usrp_list_sensors --args="type=b3xx,resource=<resource>"
+
+\subsubsection b3xx_desktop_validated_hw_sw Validated Hardware and Software Configurations
+
+The direct-PCIe results were validated on x86_64 desktop systems with the
+following representative configurations:
+
+- AMD system with a Ryzen Threadripper 3960X, 24 physical cores, 48 CPUs, 3.6 GHz,
+    and 64 GB RAM.
+- ASUSTeK COMPUTER INC. X99-A system with an Intel Core i7-5930K, 6 physical
+    cores, 12 logical CPUs, 3.50 GHz, and 32 GB RAM.
+- Lenovo system with an Intel Xeon E5-1630 v4, 4 physical cores, 8 logical
+    CPUs, 3.70 GHz, and 32 GB RAM.
+- HP system with a 13th Gen Intel Core i9-13900K, 8 physical performance cores, 16 logical
+    CPUs, and 32 GB RAM.
+
+The direct-PCIe results on the tested x86_64 desktop systems were:
+
+Configuration             | Rate
+--------------------------|-----
+1 Rx or 1 Tx              | 125 MS/s
+2 Rx or 2 Tx              | 125 MS/s
+1 Rx + 1 Tx               | 125 MS/s
+2 Rx + 2 Tx               | 125 MS/s
+
+Use `benchmark_rate` to test the complete host-to-USRP path. For example:
+
+    benchmark_rate --args="type=b3xx,resource=<resource>,master_clock_rate=125e6" --channels=0,1 --rx_rate=125e6 --tx_rate=125e6 --multi_streamer
+
+For repeatable measurements, use the CPU `performance` governor, close
+unnecessary applications, and run multiple long-duration iterations. If a test
+does not sustain, repeat it at half rate to distinguish a host scheduling or
+transport limitation from an RF configuration problem.
+
+\subsection b3xx_streaming_thunderbolt Linux Thunderbolt™
+
+\subsubsection b3xx_thunderbolt_recommended Recommended Thunderbolt™ Host
+
+Minimum requirements for reliable high-rate Thunderbolt™ streaming:
+
+- At least 8 logical CPUs
+- At least 16 GB RAM
+- Ubuntu 22.04 or newer
+- Linux kernel version 6.2 or newer with matching kernel headers
+- Thunderbolt™ 3 or newer port with PCIe tunneling enabled
+- `bolt` package installed and configured when device authorization is
+    required
+
+The Thunderbolt™ variant presents the B310 PCIe interface through a tunneled
+PCIe connection. Use a certified Thunderbolt™ cable, a Thunderbolt™-capable
+host port, and the external power connection. A USB-C port that supports only
+USB cannot enumerate the device. On Linux, authorize the device when required:
+
+    boltctl list
+    boltctl authorize <uuid>
+
+Use `boltctl enroll --policy auto <uuid>` to authorize it automatically on
+future connections. Confirm enumeration before starting UHD:
+
+    uhd_find_devices --args type=b3xx
+
+For the Thunderbolt™ variant, the `fifo` FPGA image uses the B310 DRAM as a
+buffer and is intended to improve streaming performance by some extent:
+
+    uhd_image_loader --args="type=b3xx,resource=<resource>,fpga=fifo"
+
+The Thunderbolt™ results below were obtained with the default `replay` FPGA
+bitfile, not the optional `fifo` image.
+
+\subsubsection b3xx_thunderbolt_validated_hw_sw Validated Hardware and Software Configurations
+
+The Linux Thunderbolt™ results were validated on the following laptop
+configurations using the default `replay` FPGA bitfile:
+
+- Dell Latitude 7420 running Ubuntu 24.04.4 LTS.
+- ASUS Zenbook UX3405C running Ubuntu 26.04 LTS.
+- MSI Summit 13 AI+ EVO running Ubuntu 24.04 LTS.
+- Dell Latitude 5550 running Fedora 44.
+
+
+Configuration             | Rate
+--------------------------|-----
+1 Rx or 1 Tx              | 125 MS/s
+2 Rx                      | 125 MS/s
+2 Tx                      | 62.5 MS/s
+1 Rx + 1 Tx               | 62.5 MS/s
+2 Rx + 2 Tx               | 31.25 MS/s
+
+
+\subsection b3xx_streaming_jetson Jetson AGX Orin Linux
+
+\subsubsection b3xx_jetson_validated_hw_sw Validated Hardware and Software Configurations
+
+The Jetson AGX Orin configuration consists of an ARM64 system with 12 ARM
+Cortex-A78AE cores and 64 GB RAM. The system runs Jetson Linux R36.4.4 (L4T
+36.4.4) with the B310 connected through the PCIe slot. The PCIe results using
+the default `replay` FPGA bitfile were:
+
+Configuration             | Rate
+--------------------------|-----
+1 Rx or 1 Tx              | 125 MS/s
+2 Rx or 2 Tx              | 125 MS/s
+1 Rx + 1 Tx               | 125 MS/s
+2 Rx + 2 Tx               | 125 MS/s
+
+The following optimizations can improve sustained Jetson performance and can be used if needed:
+
+- Add `pci=pcie_bus_perf` to the `APPEND` entry in
+  `/boot/extlinux/extlinux.conf`, then reboot. Confirm the argument with
+  `cat /proc/cmdline` and inspect the negotiated MPS with `lspci`. On the
+  tested system this selected an MPS of 256.
+- Set all CPU cores to the `performance` governor:
+
+      for ((i=0;i<$(nproc);i++)); do sudo cpufreq-set -c $i -r -g performance; done
+
+- Stop non-essential services while benchmarking:
+
+      sudo systemctl stop gdm
+      sudo systemctl stop docker
+      sudo systemctl stop docker.socket
+      sudo systemctl stop containerd
+
+- Confirm all cores are online with `cat /sys/devices/system/cpu/online` and
+  bring an offline core online, replacing `X` with its core number:
+
+      echo 1 | sudo tee /sys/devices/system/cpu/cpuX/online
+
+- Select the highest power mode and lock the clocks:
+
+      sudo nvpmodel -m 0
+      sudo jetson_clocks
+- Set the `--priority` argument to `high`. This requires `benchmark_rate` to be
+    executed with suitable privileges, for example using `sudo`. On some
+    systems, assigning high priority to multiple threads in the UHD streaming
+    application can cause unintended consequences because the threads contend
+    for CPU and other system resources. The effect is system-dependent, so
+    compare results with and without this option when troubleshooting.
+
 \section b3xx_misc Miscellaneous
 
 \subsection b3xx_misc_multdev_sync Multi-Device Synchronization
@@ -422,7 +592,7 @@ usrp->set_sync_source("clock_source=gpsdo,time_source=gpsdo");
 ~~~
 
 Note that acquiring a GPS lock can take some time. Query the `gps_locked` motherboard
-sensor before depending on GPS timing accuracy. The GPS chip sends a timepulse signal to an internal clocking chip to discipline the clocking on the B310. The DPLL of this clocking chip can take some time to lock to this timepulse. 
+sensor before depending on GPS timing accuracy. The GPS chip sends a timepulse signal to an internal clocking chip to discipline the clocking on the B310. The DPLL of this clocking chip can take some time to lock to this timepulse.
 Query the `ref_locked` motherboard sensor while the clock source is set to gpsdo or sync_gpsdo to determine if the DPLL of the clocking chip has locked to the timepulse signal sent by the GPS chip.
 See \ref b3xx_hw_sensors for all available GPS-related sensors.
 
@@ -546,7 +716,7 @@ Then update the FPGA image:
 
 \subsection b3xx_troubleshooting_recovery Device recovery and bricking
 
-It is possible to put the device into an unusable state by loading bad images ("bricking"). Fortunately, the B310 device can be loaded with a good image temporarily using the JTAG interface. 
+It is possible to put the device into an unusable state by loading bad images ("bricking"). Fortunately, the B310 device can be loaded with a good image temporarily using the JTAG interface.
 Once booted into the safe image, the user can once again load images onto the device using uhd_image_loader.
 
 */
