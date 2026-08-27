@@ -14,12 +14,22 @@
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <complex>
+#include <csignal>
 #include <cstdlib>
 #include <iostream>
 #include <thread>
 
 namespace po = boost::program_options;
 using std::chrono::high_resolution_clock;
+
+/***********************************************************************
+ * Signal handlers
+ **********************************************************************/
+static volatile std::sig_atomic_t stop_signal_called = 0;
+static void sig_int_handler(int)
+{
+    stop_signal_called = 1;
+}
 
 int UHD_SAFE_MAIN(int argc, char* argv[])
 {
@@ -59,7 +69,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
         "    t/T - Decrease/increase tuning step size\n"
         "    c   - Toggle display of keyboard controls\n"
         "    Arrow keys - Fine-tune center frequency\n"
-        "    Any other key - Exit the program\n"
+        "    Any other key (or Ctrl + C) - Exit the program\n"
         "    All changes are applied immediately to the USRP device and the\n"
         "    spectrum display.\n"
         "    Note: The step size for frequency, sample rate, and bandwidth\n"
@@ -273,6 +283,7 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
     //------------------------------------------------------------------
     //-- Initialize
     //------------------------------------------------------------------
+    std::signal(SIGINT, &sig_int_handler);
     initscr(); // curses init
     rx_stream->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
     auto next_refresh = high_resolution_clock::now();
@@ -342,6 +353,9 @@ int UHD_SAFE_MAIN(int argc, char* argv[])
         int ch = getch();
 
         // Key handling.
+        if (stop_signal_called) {
+            break;
+        }
         if (ch == 'r') {
             rate -= step;
             usrp->set_rx_rate(rate);
