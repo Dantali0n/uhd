@@ -893,13 +893,9 @@ private:
             {"TX_LB_ADC", ADI_ADRV903X_TC_TX_LB_ADC_MASK},
         };
 
-        if (tracking_cals_str == "DEFAULT") {
+        if (tracking_cals_str == "DEFAULT" || tracking_cals_str == "ALL") {
             return ADI_ADRV903X_TC_RX_QEC_MASK | ADI_ADRV903X_TC_RX_ADC_MASK
-                   | ADI_ADRV903X_TC_RXSPUR_MASK | ADI_ADRV903X_TC_TX_LB_ADC_MASK;
-        }
-        if (tracking_cals_str == "ALL") {
-            return ADI_ADRV903X_TC_RX_QEC_MASK | ADI_ADRV903X_TC_RX_ADC_MASK
-                   | ADI_ADRV903X_TC_RXSPUR_MASK | ADI_ADRV903X_TC_TX_QEC_MASK
+                   | ADI_ADRV903X_TC_TX_QEC_MASK | ADI_ADRV903X_TC_RXSPUR_MASK
                    | ADI_ADRV903X_TC_TX_LB_ADC_MASK;
         } else if (tracking_cals_str == "OFF") {
             return 0;
