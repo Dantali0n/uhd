@@ -661,17 +661,18 @@ As of UHD 4.11, the following USRP X420 images flavors are shipped with UHD:
 
 As of UHD 4.11, the following USRP X440 images flavors are shipped with UHD:
 
-| FPGA Image Flavor | Number of \n Channels | Bandwidth \n per Channel | QSFP28 Port 0 Interface | QSFP28 Port 1 Interface | DDC/DUC           | DRAM                      | Dual-Rate Support                          | Available on \n locked FPGA variant |
-|-------------------|-----------------------|--------------------------|-------------------------|-------------------------|-------------------|---------------------------|--------------------------------------------|-------------------------------------|
-| X4_200            | 8 (4 per FBX)         | 200 MHz                  | 4x 10 GbE (All Lanes)   | Unused                  | Yes (legacy)      | No                        | Yes until UHD 4.10, No with later versions | Yes                                 |
-| X4_400            | 8 (4 per FBX)         | 400 MHz                  | 4x 10 GbE (All Lanes)   | Unused                  | No                | Yes (8 GiB, 8-Ch Replay*) | Yes                                        | Yes                                 |
-| CG_400            | 8 (4 per FBX)         | 400 MHz                  | 100 GbE                 | 100 GbE                 | No                | No                        | Yes                                        | Yes                                 |
-| X4_800            | 2 (1 per FBX)         | 800 MHz                  | 4x 10 GbE (All Lanes)   | Unused                  | Yes (multisample) | Yes (8 GiB, 2-Ch Replay*) | Yes                                        | Yes                                 |
-| CG_800            | 2 (1 per FBX)         | 800 MHz                  | 100 GbE                 | 100 GbE                 | Yes (multisample) | No                        | Yes                                        | Yes                                 |
-| X4_1600           | 2 (1 per FBX)         | 1600 MHz                 | 4x 10 GbE (All Lanes)   | Unused                  | Yes (multisample) | Yes (8 GiB, 2-Ch Replay*) | Yes                                        | No                                  |
-| CG_1600           | 2 (1 per FBX)         | 1600 MHz                 | 100 GbE                 | 100 GbE                 | Yes (multisample) | No                        | Yes                                        | No                                  |
+| FPGA Image Flavor | Number of \n Channels | Bandwidth \n per Channel | QSFP28 Port 0 Interface | QSFP28 Port 1 Interface | DDC/DUC           | DRAM                      | Dual-Rate Support   | Available on \n locked FPGA variant |
+|-------------------|-----------------------|--------------------------|-------------------------|-------------------------|-------------------|---------------------------|---------------------|-------------------------------------|
+| X4_200            | 8 (4 per FBX)         | 200 MHz                  | 4x 10 GbE (All Lanes)   | Unused                  | Yes (legacy)      | No                        | No (as of UHD 4.11)**| Yes                                |
+| X4_400            | 8 (4 per FBX)         | 400 MHz                  | 4x 10 GbE (All Lanes)   | Unused                  | No                | Yes (8 GiB, 8-Ch Replay*) | Yes                 | Yes                                 |
+| CG_400            | 8 (4 per FBX)         | 400 MHz                  | 100 GbE                 | 100 GbE                 | No                | No                        | Yes                 | Yes                                 |
+| X4_800            | 2 (1 per FBX)         | 800 MHz                  | 4x 10 GbE (All Lanes)   | Unused                  | Yes (multisample) | Yes (8 GiB, 2-Ch Replay*) | Yes                 | Yes                                 |
+| CG_800            | 2 (1 per FBX)         | 800 MHz                  | 100 GbE                 | 100 GbE                 | Yes (multisample) | No                        | Yes                 | Yes                                 |
+| X4_1600           | 2 (1 per FBX)         | 1600 MHz                 | 4x 10 GbE (All Lanes)   | Unused                  | Yes (multisample) | Yes (8 GiB, 2-Ch Replay*) | Yes                 | No                                  |
+| CG_1600           | 2 (1 per FBX)         | 1600 MHz                 | 100 GbE                 | 100 GbE                 | Yes (multisample) | No                        | Yes                 | No                                  |
 
 <span>*</span> (Implemented as two separate Replay blocks, each providing half the total amount of channels and memory)
+<br/><span>**</span> (See USRP X440 \ref x440_usage_mcr_dualrate for options and tradeoff to enable this in UHD 4.11 or later)
 
 The following RFNoC image core configuration files include the multisample
 DDC/DUC implementation, but are not shipped as pre-compiled bitfiles:
