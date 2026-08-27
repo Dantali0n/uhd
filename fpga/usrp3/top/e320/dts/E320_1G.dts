@@ -25,7 +25,7 @@
 		interrupt-parent = <&intc>;
 		status = "okay";
 
-		phy-mode = "xgmii";
+		phy-mode = "gmii";
 
 		fixed-link {
 			speed = <1000>;
