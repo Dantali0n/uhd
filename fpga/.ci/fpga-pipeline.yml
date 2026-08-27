@@ -212,6 +212,14 @@ parameters:
       timeout: 720
       attempt_timeout: 360
       max_attempts: 2
+    X440_X1_200:
+      image_core: x440_X1_200_rfnoc_image_core.yml
+      image_core_name: usrp_x440_fpga_X1_200
+      target_name: X440
+      artifact_name: X440_X1_200
+      timeout: 720
+      attempt_timeout: 360
+      max_attempts: 2
 
 trigger: none
 pr: none
