@@ -133,6 +133,47 @@ To load a specific FPGA flavor, add the fpga device argument to the uhd_image_lo
 
 If no FPGA flavor is specified, the default flavor will be programmed.
 
+\subsubsection b3xx_fpga_utilization FPGA Resource Utilization
+
+Utilization statistics are subject to change between UHD releases. This information is current as
+of UHD 4.11 and was taken directly from Xilinx Vivado 2021.1, targeting FPGA `xc7k325t-fbg676-1`.
+
+The following table includes resource utilization for the `replay` FPGA bitfile.
+
+```
+Device utilization summary:
+---------------------------
+
+Number of Slice LUTs*:                  124522 out of    203800   61.10 %
+  Number of LUT as Logic:               103305 out of    203800   50.69 %
+  Number of LUT as Memory:               21217 out of     64000   33.15 %
+    Number of LUT as Distributed RAM:    10316
+    Number of LUT as Shift Register:     10901
+Number of Slice Registers:              184170 out of    407600   45.18 %
+Number of Bonded IOB:                      220 out of       400   55.00 %
+Number of Block RAM Tile:                369.5 out of       445   83.03 %
+Number of DSPs:                            192 out of       840   22.86 %
+
+```
+
+The following table includes resource utilization for the `fifo` FPGA bitfile.
+
+```
+Device utilization summary:
+---------------------------
+
+Number of Slice LUTs*:                  105027 out of    203800   51.53 %
+  Number of LUT as Logic:                87703 out of    203800   43.03 %
+  Number of LUT as Memory:               17324 out of     64000   27.07 %
+    Number of LUT as Distributed RAM:     8150
+    Number of LUT as Shift Register:      9174
+Number of Slice Registers:              163184 out of    407600   40.04 %
+Number of Bonded IOB:                      218 out of       400   54.50 %
+Number of Block RAM Tile:                392.5 out of       445   88.20 %
+Number of DSPs:                            192 out of       840   22.86 %
+
+```
+
 \subsection b3xx_getting_started_firmware Downloading ADRV9032R Firmware
 
 The ADRV9032R has several binaries that must be programmed every UHD session. To acquire these binaries, the user can run the following command:
