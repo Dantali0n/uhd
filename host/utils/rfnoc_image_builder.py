@@ -27,6 +27,7 @@ def get_valid_targets():
         "X310": ["1G", "HG", "XG", "HA", "XA"],
         "X300": ["1G", "HG", "XG", "HA", "XA"],
         "X410": [""],
+        "X420": [""],
         "X440": [""],
     }
     targets = []
