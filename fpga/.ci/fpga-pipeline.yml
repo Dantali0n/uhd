@@ -125,30 +125,35 @@ parameters:
     X420_CG_1000:
       image_core: x420_CG_1000_rfnoc_image_core.yml
       image_core_name: usrp_x420_fpga_CG_1000
+      target_name: X420
       artifact_name: X420_CG_1000
       timeout: 720
       max_attempts: 2
     X420_X4_1000:
       image_core: x420_X4_1000_rfnoc_image_core.yml
       image_core_name: usrp_x420_fpga_X4_1000
+      target_name: X420
       artifact_name: X420_X4_1000
       timeout: 720
       max_attempts: 2
     X420_CG_400:
       image_core: x420_CG_400_rfnoc_image_core.yml
       image_core_name: usrp_x420_fpga_CG_400
+      target_name: X420
       artifact_name: X420_CG_400
       timeout: 720
       max_attempts: 2
     X420_X4_400:
       image_core: x420_X4_400_rfnoc_image_core.yml
       image_core_name: usrp_x420_fpga_X4_400
+      target_name: X420
       artifact_name: X420_X4_400
       timeout: 720
       max_attempts: 2
     X420_X4_200:
       image_core: x420_X4_200_rfnoc_image_core.yml
       image_core_name: usrp_x420_fpga_X4_200
+      target_name: X420
       artifact_name: X420_X4_200
       timeout: 720
       max_attempts: 2
