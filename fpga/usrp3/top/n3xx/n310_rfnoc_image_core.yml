@@ -145,7 +145,7 @@ connections:
 # A list of all clock domain connections in design
 # ------------------------------------------------
 # Format: A list of connection maps (list of key-value pairs) with the following keys
-#   - srcblk  = Source block to connect (Always "_device"_)
+#   - srcblk  = Source block to connect (Always "_device_")
 #   - srcport = Clock domain on the source block to connect
 #   - dstblk  = Destination block to connect
 #   - dstport = Clock domain on the destination block to connect

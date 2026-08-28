@@ -44,7 +44,7 @@ noc_blocks:
     parameters:
       NUM_PORTS: 2
       EN_COMP_GAIN_TX: 1
-      EN_COMP_GAIN_RX: 1      
+      EN_COMP_GAIN_RX: 1
   duc1:
     block_desc: 'duc.yml'
     parameters:
@@ -105,7 +105,7 @@ connections:
 # A list of all clock domain connections in design
 # ------------------------------------------------
 # Format: A list of connection maps (list of key-value pairs) with the following keys
-#   - srcblk  = Source block to connect (Always "_device"_)
+#   - srcblk  = Source block to connect (Always "_device_")
 #   - srcport = Clock domain on the source block to connect
 #   - dstblk  = Destination block to connect
 #   - dstport = Clock domain on the destination block to connect

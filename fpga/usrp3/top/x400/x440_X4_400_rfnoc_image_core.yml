@@ -124,7 +124,7 @@ crossbar_routes:
 # This configuration only allows connections between Radio and Replay
 # blocks of the same index, e.g. Radio0<->Replay0 and Radio1<->Replay1
 # respectively.
-# All connections between Radio0<->Replay1 and Radio1<->Replay0 
+# All connections between Radio0<->Replay1 and Radio1<->Replay0
 # have been removed. Please update your host applications accordingly
 # to reflect these changes when upgrading from UHD 4.9.0 or earlier.
 #
@@ -139,7 +139,7 @@ crossbar_routes:
 #       EN_COMP_GAIN_RX: 0
 # - Save the updated rfnoc_image_core YAML file and rebuild the FPGA image
 #   using the rfnoc_image_builder utility (Vivado required).
-# 
+#
 #
 # crossbar_routes:
 #   #  eth0  eth2  dma   ep1   ep3   ep5   ep7   ep9   ep11  ep13  ep15
@@ -260,7 +260,7 @@ connections:
 # A list of all clock domain connections in design
 # ------------------------------------------------
 # Format: A list of connection maps (list of key-value pairs) with the following keys
-#   - srcblk  = Source block to connect (Always "_device"_)
+#   - srcblk  = Source block to connect (Always "_device_")
 #   - srcport = Clock domain on the source block to connect
 #   - dstblk  = Destination block to connect
 #   - dstport = Clock domain on the destination block to connect
