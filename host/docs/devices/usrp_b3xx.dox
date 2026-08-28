@@ -349,7 +349,7 @@ TX_LB_ADC               | TxLB ADC Tracking calibration
 
 If Tx QEC tracking calibrations are active, there are ranges of frequency that must be avoided due to being within 1 MHz of blackout frequencies.
 This is detailed in the "Tx QEC Tracking Calibration Frequency Planning" section of the ADRV903x user guide. However, note that because of the initial frequencies used by the B310, the sampling frequency that needs to be used is the
-sampling rate of the LBADC rather than the Tx DAC sampling rate. Though the Tx QEC tracking calibration is not enabled by default, this blackout avoidance is implemented since users can enable the calibration.
+sampling rate of the LBADC rather than the Tx DAC sampling rate.
 This blackout avoidance will be triggered anytime that the `uhd::usrp::multi_usrp::set_tx_freq()` or `uhd::usrp::multi_usrp::set_rx_freq()` is called with a value within 1 MHz of any blackout frequencies. This works by adjusting the
 RFLO to a frequency that is at least 1 MHz away from all blackout frequencies and the NCO is used to account for the shift, such that the overall frequency is where the user requested.
 
