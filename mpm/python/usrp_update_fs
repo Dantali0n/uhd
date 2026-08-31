@@ -50,7 +50,7 @@ def e31x_get_device_type():
     assert MPM_DEVICE == "e31x"
     from usrp_mpm.e31x_legacy_eeprom import MboardEEPROM, read_eeprom
 
-    eeprom_path = "/sys/devices/soc0/amba/e0004000.i2c/i2c-0/0-0051/0-00510/nvmem"
+    eeprom_path = "/sys/devices/soc0/axi/e0004000.i2c/i2c-0/0-0051/0-00510/nvmem"
     data = read_eeprom(
         True, eeprom_path, 0, MboardEEPROM.eeprom_header_format, MboardEEPROM.eeprom_header_keys
     )
