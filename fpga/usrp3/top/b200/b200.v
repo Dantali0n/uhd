@@ -127,6 +127,8 @@ module b200 (
    output 	 rx_bandsel_c
    );
 
+    localparam DEVICE = "SPARTAN6";
+
     wire reset_global = GPIF_CTL9;
 
     ///////////////////////////////////////////////////////////////////////
@@ -281,7 +283,7 @@ module b200 (
    ///////////////////////////////////////////////////////////////////////
    wire [9:0] fp_gpio_in, fp_gpio_out, fp_gpio_ddr;
 
-   b200_core #(.EXTRA_BUFF_SIZE(12)) b200_core
+   b200_core #(.EXTRA_BUFF_SIZE(12), .DEVICE(DEVICE)) b200_core
    (
       .bus_clk(bus_clk), .bus_rst(bus_rst),
       .tx_tdata(tx_tdata), .tx_tlast(tx_tlast), .tx_tvalid(tx_tvalid), .tx_tready(tx_tready),
@@ -341,7 +343,7 @@ module b200 (
     // GPIF2
     ///////////////////////////////////////////////////////////////////////
 
-   gpif2_slave_fifo32 #(.DATA_RX_FIFO_SIZE(13), .DATA_TX_FIFO_SIZE(13)) slave_fifo32
+   gpif2_slave_fifo32 #(.DATA_RX_FIFO_SIZE(13), .DATA_TX_FIFO_SIZE(13), .DEVICE(DEVICE)) slave_fifo32
     (
         .gpif_clk(gpif_clk), .gpif_rst(gpif_rst), .gpif_enb(1'b1),
         .gpif_ctl({GPIF_CTL8, GPIF_CTL6, GPIF_CTL5, GPIF_CTL4}), .fifoadr({GPIF_CTL11,GPIF_CTL12}),

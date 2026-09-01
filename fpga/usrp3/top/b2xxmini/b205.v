@@ -83,6 +83,8 @@ module b205 (
 
    );
 
+    localparam DEVICE = "SPARTAN6";
+
     wire reset_global = FX3_CTL9;
 
     ///////////////////////////////////////////////////////////////////////
@@ -247,7 +249,7 @@ module b205 (
     // b205 core
     ///////////////////////////////////////////////////////////////////////
     wire [7:0] fp_gpio_in, fp_gpio_out, fp_gpio_ddr;
-    b205_core #(.EXTRA_BUFF_SIZE(12)) b205_core
+    b205_core #(.EXTRA_BUFF_SIZE(12), .DEVICE(DEVICE)) b205_core
     (
         .bus_clk(bus_clk), .bus_rst(bus_rst),
         .tx_tdata(tx_tdata), .tx_tlast(tx_tlast), .tx_tvalid(tx_tvalid), .tx_tready(tx_tready),
@@ -279,7 +281,7 @@ module b205 (
     ///////////////////////////////////////////////////////////////////////
     // GPIF2
     ///////////////////////////////////////////////////////////////////////
-    gpif2_slave_fifo32 #(.DATA_RX_FIFO_SIZE(13), .DATA_TX_FIFO_SIZE(13)) slave_fifo32
+    gpif2_slave_fifo32 #(.DATA_RX_FIFO_SIZE(13), .DATA_TX_FIFO_SIZE(13), .DEVICE(DEVICE)) slave_fifo32
     (
         .gpif_clk(bus_clk), .gpif_rst(bus_rst), .gpif_enb(1'b1),
         .gpif_ctl({FX3_CTL8, FX3_CTL6, FX3_CTL5, FX3_CTL4}), .fifoadr({FX3_CTL11, FX3_CTL12}),

@@ -18,7 +18,8 @@ module b205_core
     parameter DEMUX_SID_MASK = 8'hf0,
     parameter EXTRA_BUFF_SIZE = 0,
     parameter RADIO_FIFO_SIZE = 11,
-    parameter SAMPLE_FIFO_SIZE = 11
+    parameter SAMPLE_FIFO_SIZE = 11,
+    parameter DEVICE = "SPARTAN6"
 
 )
 (
@@ -232,7 +233,7 @@ module b205_core
         .NEW_HB_DECIM(1),
         .SOURCE_FLOW_CONTROL(0),
         .USER_SETTINGS(0),
-        .DEVICE("SPARTAN6")
+        .DEVICE(DEVICE)
     ) radio (
         .radio_clk(radio_clk), .radio_rst(radio_rst),
         .rx(rx0), .tx(tx0), .pps(pps), .time_sync(time_sync_r),
