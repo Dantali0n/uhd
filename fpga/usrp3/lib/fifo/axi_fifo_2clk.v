@@ -55,26 +55,26 @@ module axi_fifo_2clk #(
   wire             i_pipe_tready, o_pipe_tready;
 
   generate
-    if (PIPELINE == "IN" || PIPELINE == "INOUT") begin
+    if (PIPELINE == "IN" || PIPELINE == "INOUT") begin : gen_in_flop
       axi_fifo_flop2 #(.WIDTH(WIDTH)) in_pipe_i (
         .clk(i_aclk), .reset(i_arst), .clear(1'b0),
         .i_tdata(i_tdata), .i_tvalid(i_tvalid), .i_tready(i_tready),
         .o_tdata(i_pipe_tdata), .o_tvalid(i_pipe_tvalid), .o_tready(i_pipe_tready),
         .space(), .occupied()
       );
-    end else begin
+    end else begin : gen_no_in_flop
       assign {i_pipe_tdata, i_pipe_tvalid} = {i_tdata, i_tvalid};
       assign i_tready = i_pipe_tready;
     end
 
-    if (PIPELINE == "OUT" || PIPELINE == "INOUT") begin
+    if (PIPELINE == "OUT" || PIPELINE == "INOUT") begin : gen_out_flop
       axi_fifo_flop2 #(.WIDTH(WIDTH)) out_pipe_i (
         .clk(o_aclk), .reset(o_arst), .clear(1'b0),
         .i_tdata(o_pipe_tdata), .i_tvalid(o_pipe_tvalid), .i_tready(o_pipe_tready),
         .o_tdata(o_tdata), .o_tvalid(o_tvalid), .o_tready(o_tready),
         .space(), .occupied()
       );
-    end else begin
+    end else begin : gen_no_inout_flops
       assign {o_tdata, o_tvalid} = {o_pipe_tdata, o_pipe_tvalid};
       assign o_pipe_tready = o_tready;
     end
@@ -110,8 +110,8 @@ module axi_fifo_2clk #(
   assign rd_en         = o_ext_tready & o_ext_tvalid;
 
   generate
-    // XPM-based FIFO for Xilinx FPGAs, except for the certain devices.
-    if (DEVICE != "MAX10") begin: xpm_fifo_section
+    // XPM-based FIFO for Xilinx FPGAs, except for certain devices.
+    if (DEVICE != "MAX10" && DEVICE != "SPARTAN6") begin: xpm_fifo_section
       localparam XPM_SIZE = (SIZE < SRL_THRESHOLD) ? SRL_THRESHOLD : SIZE;
       localparam TYPE = (SIZE < RAM_THRESHOLD) ? "distributed" : "block";
 
@@ -146,7 +146,7 @@ module axi_fifo_2clk #(
 
       genvar i;
       for (i = 0; i < NUM_FIFOS; i = i + 1) begin: fifo_section
-        if (SIZE <= SRL_THRESHOLD) begin
+        if (SIZE <= SRL_THRESHOLD) begin : gen_srl_fifo
           fifo_short_2clk impl_srl_i (
             .rst          (i_arst),
             .wr_clk       (i_aclk),
@@ -160,7 +160,7 @@ module axi_fifo_2clk #(
             .empty        (empty[i]),
             .rd_data_count()
           );
-        end else begin
+        end else begin : gen_bram_fifo
           fifo_4k_2clk impl_bram_i (
             .rst          (i_arst),
             .wr_clk       (i_aclk),
@@ -180,21 +180,50 @@ module axi_fifo_2clk #(
       //----------------------------------------------
       // Extension FIFO (for large sizes)
       //----------------------------------------------
-      if (SIZE > RAM_THRESHOLD) begin
-        // Bolt on an extension FIFO if the requested depth is larger than the BRAM
-        // 2clk FIFO primitive (IP)
-        axi_fifo_large #(
-          .WIDTH(WIDTH),
-          .DEPTH(2**SIZE - 2**RAM_THRESHOLD),
-          .DEVICE(DEVICE),
-          .MAX_NUM_URAM_BLOCKS(0)
-        ) ext_fifo_i (
-          .clk(o_aclk), .reset(o_arst), .clear(1'b0),
-          .i_tdata(o_ext_tdata), .i_tvalid(o_ext_tvalid), .i_tready(o_ext_tready),
-          .o_tdata(o_pipe_tdata), .o_tvalid(o_pipe_tvalid), .o_tready(o_pipe_tready),
-          .space(), .occupied()
-        );
-      end else begin
+      if (SIZE > RAM_THRESHOLD) begin : gen_extension_fifo
+        if (DEVICE == "SPARTAN6") begin : gen_verilog_fifo
+          // axi_fifo_large is a SystemVerilog module and cannot be synthesized
+          // by the ISE-based Spartan-6 flow. Use a Verilog implementation for
+          // those devices instead.
+          wire [WIDTH-1:0] ext_pipe_tdata;
+          wire             ext_pipe_tvalid;
+          wire             ext_pipe_tready;
+
+          axi_fifo_flop2 #(.WIDTH(WIDTH)) ext_fifo_pipe_i (
+            .clk(o_aclk), .reset(o_arst), .clear(1'b0),
+            .i_tdata(o_ext_tdata), .i_tvalid(o_ext_tvalid),
+            .i_tready(o_ext_tready),
+            .o_tdata(ext_pipe_tdata), .o_tvalid(ext_pipe_tvalid),
+            .o_tready(ext_pipe_tready),
+            .space(), .occupied()
+          );
+
+          axi_fifo_bram #(.WIDTH(WIDTH), .SIZE(SIZE)) ext_fifo_i (
+            .clk(o_aclk), .reset(o_arst), .clear(1'b0),
+            .i_tdata(ext_pipe_tdata), .i_tvalid(ext_pipe_tvalid),
+            .i_tready(ext_pipe_tready),
+            .o_tdata(o_pipe_tdata), .o_tvalid(o_pipe_tvalid),
+            .o_tready(o_pipe_tready),
+            .space(), .occupied()
+          );
+        end else begin : gen_axi_fifo_large
+          // Bolt on an extension FIFO if the requested depth is larger than the
+          // BRAM 2clk FIFO primitive (IP)
+          axi_fifo_large #(
+            .WIDTH(WIDTH),
+            .DEPTH(2**SIZE - 2**RAM_THRESHOLD),
+            .DEVICE(DEVICE),
+            .MAX_NUM_URAM_BLOCKS(0)
+          ) ext_fifo_i (
+            .clk(o_aclk), .reset(o_arst), .clear(1'b0),
+            .i_tdata(o_ext_tdata), .i_tvalid(o_ext_tvalid),
+            .i_tready(o_ext_tready),
+            .o_tdata(o_pipe_tdata), .o_tvalid(o_pipe_tvalid),
+            .o_tready(o_pipe_tready),
+            .space(), .occupied()
+          );
+        end
+      end else begin : gen_no_extension_fifo
         assign {o_pipe_tdata, o_pipe_tvalid} = {o_ext_tdata, o_ext_tvalid};
         assign o_ext_tready = o_pipe_tready;
       end
