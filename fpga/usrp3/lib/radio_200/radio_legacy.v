@@ -86,22 +86,22 @@ module radio_legacy
    wire 	 rx_tlast_int;
 
 
-   axi_fifo_2clk #(.WIDTH(65), .SIZE(0/*minimal*/)) ctrl_fifo
+   axi_fifo_2clk #(.WIDTH(65), .SIZE(0/*minimal*/), .DEVICE(DEVICE)) ctrl_fifo
      (.reset(bus_rst),
       .i_aclk(bus_clk), .i_tvalid(ctrl_tvalid), .i_tready(ctrl_tready), .i_tdata({ctrl_tlast, ctrl_tdata}),
       .o_aclk(radio_clk), .o_tvalid(ctrl_tvalid_r), .o_tready(ctrl_tready_r), .o_tdata({ctrl_tlast_r, ctrl_tdata_r}));
 
-   axi_fifo_2clk #(.WIDTH(65), .SIZE(RADIO_FIFO_SIZE)) tx_fifo
+   axi_fifo_2clk #(.WIDTH(65), .SIZE(RADIO_FIFO_SIZE), .DEVICE(DEVICE)) tx_fifo
      (.reset(bus_rst),
       .i_aclk(bus_clk), .i_tvalid(tx_tvalid), .i_tready(tx_tready), .i_tdata({tx_tlast, tx_tdata}),
       .o_aclk(radio_clk), .o_tvalid(tx_tvalid_r), .o_tready(tx_tready_r), .o_tdata({tx_tlast_r, tx_tdata_r}));
 
-   axi_fifo_2clk #(.WIDTH(65), .SIZE(0/*minimal*/)) resp_fifo
+   axi_fifo_2clk #(.WIDTH(65), .SIZE(0/*minimal*/), .DEVICE(DEVICE)) resp_fifo
      (.reset(radio_rst),
       .i_aclk(radio_clk), .i_tvalid(rmux_tvalid_r), .i_tready(rmux_tready_r), .i_tdata({rmux_tlast_r, rmux_tdata_r}),
       .o_aclk(bus_clk), .o_tvalid(resp_tvalid), .o_tready(resp_tready), .o_tdata({resp_tlast, resp_tdata}));
 
-   axi_fifo_2clk #(.WIDTH(65), .SIZE(RADIO_FIFO_SIZE)) rx_fifo
+   axi_fifo_2clk #(.WIDTH(65), .SIZE(RADIO_FIFO_SIZE), .DEVICE(DEVICE)) rx_fifo
      (.reset(radio_rst),
       .i_aclk(radio_clk), .i_tvalid(rx_tvalid_r), .i_tready(rx_tready_r), .i_tdata({rx_tlast_r, rx_tdata_r}),
       .o_aclk(bus_clk), .o_tvalid(rx_tvalid_int), .o_tready(rx_tready_int), .o_tdata({rx_tlast_int, rx_tdata_int}));
@@ -238,7 +238,7 @@ endgenerate
    wire [63:0] vita_time_b_int;
    wire        vita_time_b_valid;
 
-    axi_fifo_2clk #(.WIDTH(64), .SIZE(0)) vita_time_fifo
+   axi_fifo_2clk #(.WIDTH(64), .SIZE(0), .DEVICE(DEVICE)) vita_time_fifo
      (.reset(radio_rst),
       .i_aclk(radio_clk), .i_tvalid(1'b1), .i_tready(), .i_tdata(vita_time),
       .o_aclk(bus_clk), .o_tvalid(vita_time_b_valid), .o_tready(1'b1), .o_tdata(vita_time_b_int));

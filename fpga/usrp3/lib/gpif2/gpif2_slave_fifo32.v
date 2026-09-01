@@ -22,7 +22,9 @@ module gpif2_slave_fifo32
     parameter ADDR_DATA_TX = 2'b00,
     parameter ADDR_DATA_RX = 2'b01,
     parameter ADDR_CTRL_TX = 2'b10,
-    parameter ADDR_CTRL_RX = 2'b11
+    parameter ADDR_CTRL_RX = 2'b11,
+
+    parameter DEVICE = "SPARTAN6"
 )
    (
     // GPIF signals
@@ -479,7 +481,7 @@ module gpif2_slave_fifo32
    // TX Data Path
    wire [31:0] debug_data_fifo;
 
-    gpif2_to_fifo64 #(.FIFO_SIZE(DATA_TX_FIFO_SIZE)) gpif2_to_fifo64_tx(
+    gpif2_to_fifo64 #(.FIFO_SIZE(DATA_TX_FIFO_SIZE), .DEVICE(DEVICE)) gpif2_to_fifo64_tx (
         .gpif_clk(gpif_clk), .gpif_rst(gpif_rst),
         .i_tdata(gpif_data_in), .i_tlast(data_ctrl_tx_tlast), .i_tvalid(data_tx_tvalid), .i_tready(data_tx_tready), // IJB. NOTE data_tx_tready currently unused.
         .fifo_clk(fifo_clk), .fifo_rst(fifo_rst),
@@ -491,7 +493,7 @@ module gpif2_slave_fifo32
    // ////////////////////////////////////////////
    // RX Data Path
 
-    fifo64_to_gpif2 #(.FIFO_SIZE(DATA_RX_FIFO_SIZE)) fifo64_to_gpif2_rx(
+    fifo64_to_gpif2 #(.FIFO_SIZE(DATA_RX_FIFO_SIZE), .DEVICE(DEVICE)) fifo64_to_gpif2_rx (
         .fifo_clk(fifo_clk), .fifo_rst(fifo_rst),
         .i_tdata(rx_tdata), .i_tlast(rx_tlast), .i_tvalid(rx_tvalid), .i_tready(rx_tready),
         .gpif_clk(gpif_clk), .gpif_rst(gpif_rst),
@@ -502,7 +504,7 @@ module gpif2_slave_fifo32
     // CTRL path
     wire [31:0] debug_ctrl_fifo;
 
-    gpif2_to_fifo64 #(.FIFO_SIZE(CTRL_TX_FIFO_SIZE)) gpif2_to_fifo64_ctrl(
+    gpif2_to_fifo64 #(.FIFO_SIZE(CTRL_TX_FIFO_SIZE), .DEVICE(DEVICE)) gpif2_to_fifo64_ctrl (
         .gpif_clk(gpif_clk), .gpif_rst(gpif_rst),
         .i_tdata(gpif_data_in), .i_tlast(data_ctrl_tx_tlast), .i_tvalid(ctrl_tx_tvalid), .i_tready(ctrl_tx_tready), // IJB. NOTE data_tx_tready currently unused.
         .fifo_clk(fifo_clk), .fifo_rst(fifo_rst),
@@ -514,7 +516,7 @@ module gpif2_slave_fifo32
    // ////////////////////////////////////////////////////////////////////
    // RESP path
 
-    fifo64_to_gpif2 #(.FIFO_SIZE(CTRL_RX_FIFO_SIZE)) fifo64_to_gpif2_resp(
+    fifo64_to_gpif2 #(.FIFO_SIZE(CTRL_RX_FIFO_SIZE), .DEVICE(DEVICE)) fifo64_to_gpif2_resp (
         .fifo_clk(fifo_clk), .fifo_rst(fifo_rst),
         .i_tdata(resp_tdata), .i_tlast(resp_tlast), .i_tvalid(resp_tvalid), .i_tready(resp_tready),
         .gpif_clk(gpif_clk), .gpif_rst(gpif_rst),

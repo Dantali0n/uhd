@@ -9,7 +9,8 @@
 module gpif2_to_fifo64
   #(
     parameter FIFO_SIZE = 9,
-    parameter MTU = 12
+    parameter MTU = 12,
+    parameter DEVICE = "SPARTAN6"
     )
     (
      //input interface
@@ -77,7 +78,7 @@ module gpif2_to_fifo64
    wire 	    chk_tlast;
    wire 	    chk_tvalid, chk_tready;
 
-   axi_fifo_2clk #(.WIDTH(33), .SIZE(FIFO_SIZE)) cross_clock_fifo
+   axi_fifo_2clk #(.WIDTH(33), .SIZE(FIFO_SIZE), .DEVICE(DEVICE)) cross_clock_fifo
      (
       .reset(fifo_rst | gpif_rst),
       .i_aclk(gpif_clk), .i_tdata({int_tlast, int_tdata}), .i_tvalid(int_tvalid), .i_tready(int_tready),
