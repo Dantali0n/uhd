@@ -32,7 +32,7 @@ def print_timing_constraint_summary(twr_file):
             if 'constraint' in line and 'met' in line: done = True
             if not keep and done: keep = True
             if keep: output += line
-        if done: break
+            if done: break
     print(("\n\n"+output))
 
 if __name__=='__main__': list(map(print_timing_constraint_summary, sys.argv[1:]))
