@@ -58,6 +58,8 @@ except ImportError:
 
 # sc16 (32-bit) samples on the USRP
 BYTES_PER_SAMP = 4
+# Sample rates are floats, so compare them with a tolerance (in Hz).
+RATE_TOLERANCE_HZ = 1.0
 
 
 # pylint: disable=too-many-arguments
@@ -198,7 +200,7 @@ def connect_radios(graph, replay, radio_chan_pairs, freqs, gains, antennas, rate
     if rate is None:
         rate = radio_chan_pairs[0][0].get_rate()
     print(f"Requested rate: {rate/1e6:.2f} Msps")
-    actual_rate = None
+    ddc_chan_pairs = []
     for replay_port_idx, rcp in enumerate(radio_chan_pairs):
         radio, chan = rcp
         print(
@@ -227,16 +229,35 @@ def connect_radios(graph, replay, radio_chan_pairs, freqs, gains, antennas, rate
         )
         if ddc_block is not None:
             print(f"Found DDC block on channel {chan}.")
-            this_rate = uhd.rfnoc.DdcBlockControl(graph.get_block(ddc_block[0])).set_output_rate(
-                rate, rcp[1]
-            )
+            ddc = uhd.rfnoc.DdcBlockControl(graph.get_block(ddc_block[0]))
+            # The DDC port is the destination port of the edge, which is not
+            # necessarily the same as the radio channel index.
+            ddc_chan_pairs.append((ddc, ddc_block[1]))
+            ddc.set_output_rate(rate, ddc_block[1])
         else:
-            this_rate = rcp[0].set_rate(rate)
-        if actual_rate is None:
-            actual_rate = this_rate
-            continue
-        if actual_rate != this_rate:
-            raise RuntimeError("Unexpected rate mismatch.")
+            ddc_chan_pairs.append((None, None))
+            radio.set_rate(rate)
+    return rate, ddc_chan_pairs
+
+
+def get_actual_rate(radio_chan_pairs, ddc_chan_pairs, requested_rate):
+    """Read back the rate that was actually applied, after the graph was committed.
+
+    The DDC only supports integer decimations, so the requested rate may have
+    been coerced. Reading it back before graph commit can return a stale value.
+    """
+    rates = [
+        ddc.get_output_rate(ddc_chan) if ddc is not None else radio.get_rate()
+        for (radio, _), (ddc, ddc_chan) in zip(radio_chan_pairs, ddc_chan_pairs)
+    ]
+    if max(rates) - min(rates) > RATE_TOLERANCE_HZ:
+        raise RuntimeError(f"Unexpected rate mismatch between channels: {rates}")
+    actual_rate = rates[0]
+    if abs(actual_rate - requested_rate) > RATE_TOLERANCE_HZ:
+        print(
+            f"WARNING: Requested rate {requested_rate/1e6:.3f} Msps is not achievable "
+            f"at the current master clock rate; coerced to {actual_rate/1e6:.3f} Msps."
+        )
     return actual_rate
 
 
@@ -278,7 +299,9 @@ def run_capture(graph, replay, radio_chan_pairs, mem_stride, num_samps, rate, ca
     ## Send stream command to all radios
     # This 'rate ratio' would be better handled by RFNoC. If the replay block
     # were to submit the stream command to the radio, this would not be necessary.
-    rate_ratio = int(radio_chan_pairs[0][0].get_rate() / rate)
+    # 'rate' is the coerced rate read back after commit, so the ratio is an
+    # integer (the DDC decimation) up to floating point error.
+    rate_ratio = round(radio_chan_pairs[0][0].get_rate() / rate)
     stream_cmd = uhd.types.StreamCMD(uhd.types.StreamMode.num_done)
     stream_cmd.num_samps = num_samps * rate_ratio
     stream_cmd.stream_now = False
@@ -369,10 +392,9 @@ def main():
     graph = uhd.rfnoc.RfnocGraph(args.args)
     replay = uhd.rfnoc.ReplayBlockControl(graph.get_block(args.block))
     radio_chan_pairs = enumerate_radios(graph, args.radio_channels)
-    rate = connect_radios(
+    rate, ddc_chan_pairs = connect_radios(
         graph, replay, radio_chan_pairs, args.freq, args.gain, args.antenna, args.rate
     )
-    print(f"Using rate: {rate/1e6:.3f} Msps")
     # Set up streamer
     stream_args = uhd.usrp.StreamArgs(args.cpu_format, "sc16")
     stream_args.args["throttle"] = str(args.throttle)
@@ -383,6 +405,10 @@ def main():
         # replay block.
         graph.connect(replay.get_unique_id(), chan, rx_streamer, chan)
     graph.commit()
+
+    # Only after commit are the propagated sample rates guaranteed to be final.
+    rate = get_actual_rate(radio_chan_pairs, ddc_chan_pairs, rate)
+    print(f"Using rate: {rate/1e6:.3f} Msps")
 
     num_bytes = args.duration * rate * BYTES_PER_SAMP if args.duration is not None else None
     mem_stride, num_bytes = _sanitize_args(
