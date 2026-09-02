@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Ettus Research <uhd.maintainer@emerson.com>
 Uploaders: Joerg Hofrichter <joerg.hofrichter@emerson.com>
 Build-Depends: cmake,
-               debhelper-compat (= 12),
+               debhelper (>= 12),
                libboost-dev,
                libboost-filesystem-dev,
                libboost-program-options-dev,
@@ -17,6 +17,7 @@ Build-Depends: cmake,
                protobuf-compiler-grpc,
                libncurses-dev,
                libusb-1.0-0-dev [linux-any hurd-i386],
+               libusb2-dev [kfreebsd-any],
                pkgconf,
                python3-dev,
                python3-mako,
@@ -27,7 +28,7 @@ Build-Depends: cmake,
                pybind11-dev
 Build-Depends-Indep: doxygen,
               	     doxygen-latex,
-               	     graphviz
+               	     graphviz [!powerpcspe]
 Standards-Version: 4.6.0
 Homepage: https://www.ettus.com
 Vcs-Git: https://github.com/EttusResearch/uhd.git
