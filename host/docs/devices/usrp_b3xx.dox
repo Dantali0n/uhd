@@ -252,6 +252,31 @@ To use an external reference:
 auto usrp = uhd::usrp::multi_usrp::make("type=b3xx,clock_source=external");
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+\subsection b3xx_misc_multdev_sync Multi-Device Synchronization
+
+Multiple B310 devices can be synchronized using a shared external clock and PPS signal.
+Connect each device to either the same 10 MHz reference and PPS source or via multi-device sync cable. Then, use
+`clock_source=external` and `time_source=external` if using a shared 10 MHz reference or `clock_source=sync` and `time_source=sync` if using the multi-device sync cable.
+
+When all devices are configured with matching sync sources, the multi-device session
+will run the synchronization procedure automatically during initialization (resource names for the devices can be found via uhd_find_devices):
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
+auto usrp = uhd::usrp::multi_usrp::make(
+    "resource0=<resource0>,resource1=<resource1>,clock_source=external,time_source=external");
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This procedure must be run during initialization for the ADRV9032 transceiver chips to synchronize correctly. The cabling for the multi-device system must be connected before the session is initialized.
+For the 10MHz external reference clock, the setup is similar to other USRPs and is documented here: \ref sync_commonref_pps. For USRP B310, a new method of synchronization was introduced using the SYNC
+port on the back of USRP B310 and a separate multi-device sync cable. The multi-device sync cable is a mini HDMI to eight SMA cable,
+four of those SMAs (PFI 0-3) carry a high-frequency reference clock (either 122.88MHz or 125MHz, depending on the session master clock rate) and the other four SMAs (PFI 4-7) carry
+a PPS signal exported from the B310 that is connected to the SYNC port. This can be used to synchronize up four B310s. 
+Any of the four B310s can be used for the mini HDMI connection, but this connection must be setup before the UHD session is opened. A diagram can be seen below for connecting four B310s using the multi-device
+sync cable. NI recommends using the accessory '791010-01 - USRP MULTI DEVICE DIRECT SYNC CABLE, 0.3M', orderable through ni.com or your local sales representative. 
+This cable breaks out the mini-HDMI (HDMI Type C) to 8x SMA.
+
+\image html b310_multi_dev_sync.png "Multi-Device Sync Cable Setup with Four B310s" width=35%
+
 \section b3xx_addressing Addressing the Device
 
 \subsection b3xx_addressing_singledev Single device configuration
@@ -275,7 +300,7 @@ resource args:
 
     type=b3xx,resource0=<resource string for device 0>,resource1=<resource string for device 1>
 
-For multi-device synchronization, ensure both devices share an external clock
+For multi-device synchronization, ensure all devices share an external clock
 and PPS signal (see \ref b3xx_misc_multdev_sync).
 
 \section b3xx_hw_notes Hardware Notes
@@ -595,22 +620,6 @@ The following optimizations can improve sustained Jetson performance and can be 
     compare results with and without this option when troubleshooting.
 
 \section b3xx_misc Miscellaneous
-
-\subsection b3xx_misc_multdev_sync Multi-Device Synchronization
-
-Multiple B310 devices can be synchronized using a shared external clock and PPS signal.
-Connect each device to either the same 10 MHz reference and PPS source or via multi-device sync cable. Then use
-`clock_source=external` and `time_source=external` if using a shared 10 MHz reference, or use `clock_source=sync` and `time_source=sync` if using the multi-device sync cable.
-
-When both devices are configured with matching sync sources, the multi-device session
-will run the synchronization procedure automatically during initialization:
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~{.cpp}
-auto usrp = uhd::usrp::multi_usrp::make(
-    "resource0=<resource0>,resource1=<resource1>,clock_source=external,time_source=external");
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This procedure must be run during initialization for the ADRV9032 transceiver chips to synchronize correctly.
 
 \subsection b3xx_misc_timedcmds Timed Commands
 
