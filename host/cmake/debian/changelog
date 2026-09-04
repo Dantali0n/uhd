@@ -4,16 +4,17 @@ uhd (4.11.0.0-0ubuntu1) ubuntu_release; urgency=low
     - Add support for the new USRP B310, a PCIe/Thunderbolt-based device which
       supports 2x2 RF channels at up to 100 MHz bandwidth per channel.
     - Add support for X410, X420 and X440 variants with locked FPGA
-    - Update underlying OE version on embedded devices to Scarthgap (5.0 LTS).
-      Note that some of the MPM updates require this update.
+    - Update underlying OE version on embedded devices to Scarthgap (5.0 LTS)
+      and Linux kernel to version 6.12.
     - Migrated the MPM RPC transport layer from mprpc (msgpack-RPC) to gRPC/Protobuf,
       impacting all embedded devices running MPM.
   * New Features
     - X420 and X440:
-      - The X420_X4_200, X420_CG_400, X420_X4_400 and X440_X4_200 FPGA images now use
-        fixed fabric resamplers (3x) and RFDC resamplers instead of RFDC resamplers alone.
-        This ensures repeatable phase offsets between devices and reboots. Note that
-        this feature is currently mutually exclusive with dual rate support, and it
+      - The X420_X4_200, X420_CG_400, X420_X4_400 and X440_X4_200 FPGA images now
+        use fixed fabric resamplers (3x) and RFDC resamplers instead of RFDC
+        resamplers alone. This ensures repeatable phase and time offsets between
+        repeatability events on these updated FPGA images. Note that this feature
+        is currently mutually exclusive with dual rate support on X440, and it
         increases the resource utilization. To revert to the previous image with
         non-repeatable phase offsets, a custom image must be built.
     - X420:
@@ -24,7 +25,7 @@ uhd (4.11.0.0-0ubuntu1) ubuntu_release; urgency=low
         to enable easy toggling between using fixed fabric resamplers (the new default)
         and the previous behavior. The parameter is set to true (use fixed fabric
         resamplers) in this image and is not available in other X440 FPGA images.
-    - X4xx: 
+    - X4xx:
       - The ref_locked sensor no longer queries the sticky bits; instead, it
         only reports the current lock state. The ref_stable sensor is added to
         include the sticky bits.
@@ -132,7 +133,7 @@ uhd (4.11.0.0-0ubuntu1) ubuntu_release; urgency=low
     - Windows: 10 22H2, 11 24H2
     - MacOS: Sequoia (15.7)
 
- -- Ettus Research <uhd.maintainer@emerson.com>  Wed, 02 Sep 2026 05:54:06 -0800
+ -- Ettus Research <uhd.maintainer@emerson.com>  Mon, 07 Sep 2026 06:09:07 -0800
 
 
 uhd (4.10.0.0-0ubuntu1) ubuntu_release; urgency=low
