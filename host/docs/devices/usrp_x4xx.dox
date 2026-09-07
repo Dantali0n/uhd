@@ -765,14 +765,18 @@ can be downloaded by setting the device type specifier:
     sudo uhd_images_downloader --args "type=x4xx"
 
 The FPGA can be updated to one of the available FPGA images using `uhd_image_loader` on the host computer
-by explicitly providing the FPGA bitfile path:
+by explicitly providing the FPGA image file path:
 
-    uhd_image_loader --args "type=x4xx,addr=<IP address of device>" --fpga-path <path to .bit>
+    uhd_image_loader --args "type=x4xx,addr=<IP address of device>" --fpga-path <file path to fpga image>
 
 or by providing the FPGA image type:
 
     uhd_image_loader --args "type=x4xx,addr=<IP address of device>,fpga=FPGA_TYPE"
 
+Note: FPGA images with the `.bin` file extension are compatible with both standard and locked
+model variants (see \ref x4xx_variants). FPGA images with the `.bit` file extension are only
+compatible with standard model variants. Custom FPGA images generated with the RFNoC image
+builder use the `.bit` file extension and therefore can only be used with standard models.
 
 Also note that the USRP already ships with compatible FPGA images on the device -
 these images can be loaded by SSH'ing into the device (Stand-alone mode) and running:
