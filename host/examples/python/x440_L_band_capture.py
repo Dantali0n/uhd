@@ -156,8 +156,8 @@ def main():
     radio1.set_rx_frequency(radio1_frequency, 0)
     radio1.set_rate(args.mcrs[1])
 
-    graph.connect(radio0.get_unique_id(), 0, replay0.get_unique_id(), 0)
-    graph.connect(radio1.get_unique_id(), 0, replay1.get_unique_id(), 0)
+    uhd.rfnoc.connect_through_blocks(graph, radio0.get_unique_id(), 0, replay0.get_unique_id(), 0)
+    uhd.rfnoc.connect_through_blocks(graph, radio1.get_unique_id(), 0, replay1.get_unique_id(), 0)
 
     throttle = args.throttle
     num_bytes0 = 0
