@@ -208,9 +208,9 @@ static std::string get_fpga_path(
             std::string type_name = fpga_type.empty() ? "" : "_" + fpga_type;
             std::string image_path;
             try {
-                image_path = find_image_path(base_name + type_name + ".bit");
-            } catch (const uhd::io_error&) {
                 image_path = find_image_path(base_name + type_name + ".bin");
+            } catch (const uhd::io_error&) {
+                image_path = find_image_path(base_name + type_name + ".bit");
             }
             return image_path;
         }
