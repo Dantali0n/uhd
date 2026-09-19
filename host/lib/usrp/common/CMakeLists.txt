@@ -69,7 +69,7 @@ if(ENABLE_MPMD)
         set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "" FORCE)
         find_package(Protobuf CONFIG REQUIRED)
     else()
-        find_package(Protobuf REQUIRED)
+        find_package(Protobuf CONFIG REQUIRED)
     endif()
     find_package(gRPC REQUIRED)
 

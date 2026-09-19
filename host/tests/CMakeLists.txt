@@ -310,8 +310,26 @@ if(ENABLE_DPDK)
         EXTRA_LIBS ${DPDK_LIBRARIES}
         NOAUTORUN # Don't register for auto-run, it requires special config
     )
+    UHD_ADD_NONAPI_TEST(
+        TARGET "dpdk_ordering_test.cpp"
+        EXTRA_SOURCES
+        ${UHD_SOURCE_DIR}/lib/utils/config_parser.cpp
+        ${UHD_SOURCE_DIR}/lib/utils/paths.cpp
+        ${UHD_SOURCE_DIR}/lib/utils/pathslib.cpp
+        ${UHD_SOURCE_DIR}/lib/utils/prefs.cpp
+        ${UHD_SOURCE_DIR}/lib/transport/adapter.cpp
+        ${UHD_SOURCE_DIR}/lib/transport/uhd-dpdk/dpdk_common.cpp
+        ${UHD_SOURCE_DIR}/lib/transport/uhd-dpdk/dpdk_io_service.cpp
+        ${UHD_SOURCE_DIR}/lib/transport/udp_dpdk_link.cpp
+        INCLUDE_DIRS
+        ${DPDK_INCLUDE_DIRS}
+        EXTRA_LIBS ${DPDK_LIBRARIES}
+        NOAUTORUN
+    )
+
     target_compile_options(dpdk_test PRIVATE ${DPDK_CFLAGS})
     target_compile_options(dpdk_port_test PRIVATE ${DPDK_CFLAGS})
+    target_compile_options(dpdk_ordering_test PRIVATE ${DPDK_CFLAGS})
 ENDIF(ENABLE_DPDK)
 
 UHD_ADD_NONAPI_TEST(

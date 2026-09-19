@@ -13,6 +13,7 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <atomic>
 
 namespace uhd { namespace transport { namespace dpdk {
 
@@ -45,7 +46,7 @@ enum wait_type {
  *
  * This class is managed with explicit reference counting.
  */
-struct wait_req
+struct __rte_cache_aligned wait_req
 {
     //! The reason we're waiting (and service request associated with it)
     enum wait_type reason;
@@ -60,7 +61,7 @@ struct wait_req
     //! The status or error code associated with the request
     int retval;
     //! An atomic reference counter for managing this request object's memory
-    rte_atomic32_t refcnt;
+    std::atomic<int32_t> refcnt;
 };
 
 /*!
@@ -78,7 +79,7 @@ inline wait_req* wait_req_alloc(wait_type t, void* priv_data)
     req         = new (req) wait_req();
     req->reason = t;
     req->data   = priv_data;
-    rte_atomic32_set(&req->refcnt, 1);
+    req->refcnt.store(1, std::memory_order_relaxed);
     return req;
 }
 
@@ -90,7 +91,7 @@ inline wait_req* wait_req_alloc(wait_type t, void* priv_data)
  */
 inline void wait_req_put(wait_req* req)
 {
-    if (rte_atomic32_dec_and_test(&req->refcnt)) {
+    if (req->refcnt.fetch_sub(1, std::memory_order_acq_rel) == 1) {
         rte_free(req);
     }
 }
@@ -103,7 +104,7 @@ inline void wait_req_put(wait_req* req)
  */
 inline void wait_req_get(wait_req* req)
 {
-    rte_atomic32_inc(&req->refcnt);
+    req->refcnt.fetch_add(1, std::memory_order_relaxed);
 }
 
 
