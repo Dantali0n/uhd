@@ -1,0 +1,35 @@
+default:
+  image:
+    name: $CI_REGISTRY_IMAGE/ci-build-runner:$CI_COMMIT_REF_SLUG
+    pull_policy: always
+
+stages:
+  - prepare
+  - build
+  - test
+
+trigger_prepare:
+  stage: prepare
+  trigger:
+    strategy: depend
+    include: .prepare.gitlab-ci.yml
+
+build:
+  stage: build
+  script:
+    - mkdir build
+    - cd build
+    - cmake -DENABLE_TESTS=ON -DENABLE_DPDK=ON ..
+    - make -j$(nproc)
+  artifacts:
+    paths:
+      - build/
+
+test:
+  stage: test
+  dependencies:
+    - build
+  script:
+    - cd build
+    - ctest
+    - ./host/tests/dpdk_ordering_test
